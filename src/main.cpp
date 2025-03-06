@@ -223,7 +223,7 @@ int main(int argc, char* argv[])
         // Render object
         // *************
         glUseProgram(mainShader);
-        constexpr glm::mat4 model{ 1.0f };
+        const glm::mat4 model{ glm::scale(glm::mat4{1.0f}, glm::vec3{5.0f, 5.0f, 5.0f}) };
         const glm::mat4 modelViewTransform { view * model };
 
         glUniformMatrix4fv(glGetUniformLocation(mainShader, "model"), 1, GL_FALSE, glm::value_ptr(model));

@@ -16,10 +16,10 @@ class TriangleMesh
             obj.LoadFromFileObj(objectFilePath.c_str());
             obj.ComputeNormals(true);
 
-            // Handle obj data
             std::vector<GLfloat> interleavedObjData;
             std::unordered_map<std::string, GLuint> uniqueVertexMap;
             std::vector<GLuint> indices;
+            std::vector<GLuint> vertexIDs;
 
             GLuint indexCounter;
             for (size_t i { 0 }; i < obj.NF(); ++i)
@@ -48,6 +48,8 @@ class TriangleMesh
                         interleavedObjData.push_back(-norm.y);
                         interleavedObjData.push_back(-norm.z);
 
+                        interleavedObjData.push_back(static_cast<float>(indexCounter));
+
                         indices.push_back(indexCounter++);
                     }
                     else
@@ -57,36 +59,40 @@ class TriangleMesh
 
             m_numIndices = indices.size();
 
-            GLuint VBO;
+            GLuint VBO, EBO;
             glGenVertexArrays(1, &m_VAO);
 
             glBindVertexArray(m_VAO);
 
             glGenBuffers(1, &VBO);
-            glGenBuffers(1, &m_EBO);
+            glGenBuffers(1, &EBO);
 
             glBindBuffer(GL_ARRAY_BUFFER, VBO);
             glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * interleavedObjData.size(), interleavedObjData.data(), GL_STATIC_DRAW);
 
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), indices.data(), GL_STATIC_DRAW);
 
             // Set vertex attributes
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)0); // Vertex positions
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)0); // Vertex positions
             glEnableVertexAttribArray(0);
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)(sizeof(GL_FLOAT) * 3)); // Vertex normals
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(sizeof(GL_FLOAT) * 3)); // Vertex normals
             glEnableVertexAttribArray(1);
+            glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(sizeof(GL_FLOAT) * 6)); // Vertex normals
+            glEnableVertexAttribArray(2);
 
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             glBindVertexArray(0);
         }
 
-        GLuint getVAO() { return m_VAO; }
-        GLuint getEBO() { return m_EBO; }
-        unsigned int getNumIndices() { return m_numIndices; }
+        void draw()
+        {
+            glBindVertexArray(m_VAO);
+            glDrawElements(GL_TRIANGLES, m_numIndices, GL_UNSIGNED_INT, 0);
+            glBindVertexArray(0);
+        }
 
     private:
         GLuint m_VAO;
-        GLuint m_EBO;
         unsigned int m_numIndices;
 };

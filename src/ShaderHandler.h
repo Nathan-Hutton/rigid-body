@@ -4,6 +4,7 @@
 #include <vector>
 
 GLuint mainShader;
+GLuint lineShader;
 
 std::string readFile(const std::string& filePath)
 {
@@ -103,4 +104,5 @@ void compileShader(GLuint& shaderProgram, const std::vector<std::string>& shader
 void compileShaders()
 {
     compileShader(mainShader, std::vector<std::string>{"../shaders/shader.vert", "../shaders/shader.frag"});
+    compileShader(lineShader, std::vector<std::string>{"../shaders/lineShader.vert", "../shaders/lineShader.frag"});
 }

@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
 {
     if (argc < 2) // Since I want to just be able to ./main
     {
-        argv[1] = strdup("../assets/teapot.obj");
+        argv[1] = strdup("../assets/dragon_80k.obj");
         //return -1;
     }
 
@@ -33,8 +33,7 @@ int main(int argc, char* argv[])
     // These 2 lines are just so I can set the window size to be the size of the monitor in glfwCreateWindow
     GLFWmonitor* monitor { glfwGetPrimaryMonitor() };
     const GLFWvidmode* mode { glfwGetVideoMode(monitor) };
-
-    GLFWwindow* window { glfwCreateWindow(mode->width, mode->height, "Rigid-body", NULL, NULL) };
+    GLFWwindow* window { glfwCreateWindow(mode->width, mode->height, "Rigid-body", monitor, NULL) };
     if (window == NULL)
     {
         std::cout << "Failed to create window\n";
@@ -43,7 +42,7 @@ int main(int argc, char* argv[])
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, resize_window);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // So the cursor won't hit the edge of the screen and stop
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL); // So the cursor won't hit the edge of the screen and stop
     if (glfwRawMouseMotionSupported())
         glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 
@@ -103,19 +102,71 @@ int main(int argc, char* argv[])
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
+    // **********
+    // Handle box
+    // **********
+    const std::vector<GLfloat> boxVertices
+    {
+        -5.0f, -5.0f, -5.0f,
+         5.0f, -5.0f, -5.0f,
+        -5.0f,  5.0f, -5.0f,
+         5.0f,  5.0f, -5.0f,
+        -5.0f, -5.0f, 5.0f,
+         5.0f, -5.0f, 5.0f,
+        -5.0f,  5.0f, 5.0f,
+         5.0f,  5.0f, 5.0f
+    };
+
+    const std::vector<GLuint> boxIndices
+    {
+        0, 1,
+        1, 3,
+        3, 2,
+        2, 0,
+        4, 5,
+        5, 7,
+        7, 6,
+        6, 4,
+        0, 4,
+        2, 6,
+        3, 7,
+        1, 5
+    };
+
+    GLuint boxVAO, boxVBO, boxEBO;
+    glGenVertexArrays(1, &boxVAO);
+
+    glBindVertexArray(boxVAO);
+
+    glGenBuffers(1, &boxVBO);
+    glGenBuffers(1, &boxEBO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, boxVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * boxVertices.size(), boxVertices.data(), GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, boxEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * boxIndices.size(), boxIndices.data(), GL_STATIC_DRAW);
+
+    // Set vertex attributes
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0); // Vertex positions
+    glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
     // ****************
     // Scene properties
     // ****************
     compileShaders();
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.0f, 0.1f, 0.1f, 1.0f);
 
     const glm::mat4 projection { glm::perspective(glm::radians(45.0f), (float)mode->width / mode->height, 0.1f, 500.0f) };
     constexpr glm::vec3 viewDir { 0.0f, 0.0f, 1.0f };
 
-    // Camera view parameters for plane
     GLfloat xCameraRotateAmountObject{ 0.0f };
     GLfloat zCameraRotateAmountObject{ 0.0f };
-    GLfloat viewDistance{-100.0f};
+    GLfloat viewDistance{-5.0f};
 
     // Parameters to change light rotation
 	GLfloat zLightRotateAmount{ 0.0f };
@@ -162,27 +213,37 @@ int main(int argc, char* argv[])
         glm::mat4 view { glm::translate(glm::mat4{1.0f}, viewDir * viewDistance) };
         view = glm::rotate(view, glm::radians(-xCameraRotateAmountObject), glm::vec3{1.0f, 0.0f,0.0f});
         view = glm::rotate(view, glm::radians(-zCameraRotateAmountObject), glm::vec3{0.0f, 1.0f, 0.0f});
-        glUniformMatrix4fv(glGetUniformLocation(mainShader, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
 		glm::mat4 lightRotateMatrix { glm::rotate(glm::mat4{1.0f}, glm::radians(zLightRotateAmount), glm::vec3(0.0f, 0.0f, 1.0f)) };
 		lightRotateMatrix = glm::rotate(lightRotateMatrix, glm::radians(yLightRotateAmount), glm::vec3(0.0f, 1.0f, 0.0f));
         const glm::vec3 lightDir { glm::vec3{lightRotateMatrix * glm::vec4{1.0f, 0.0f, 0.0f, 0.0f}} };
         const glm::vec3 lightDirInViewSpace { -glm::normalize(view * glm::vec4(lightDir, 0.0f)) };
-		glUniform3fv(glGetUniformLocation(mainShader, "lightDir"), 1, glm::value_ptr(lightDirInViewSpace));
 
-        // ************
-        // Render scene
-        // ************
+        // *************
+        // Render object
+        // *************
+        glUseProgram(mainShader);
         constexpr glm::mat4 model{ 1.0f };
-        glUniformMatrix4fv(glGetUniformLocation(mainShader, "model"), 1, GL_FALSE, glm::value_ptr(model));
-
         const glm::mat4 modelViewTransform { view * model };
+
+        glUniformMatrix4fv(glGetUniformLocation(mainShader, "model"), 1, GL_FALSE, glm::value_ptr(model));
+        glUniformMatrix4fv(glGetUniformLocation(mainShader, "view"), 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(glGetUniformLocation(mainShader, "modelView"), 1, GL_FALSE, glm::value_ptr(modelViewTransform));
         glUniformMatrix4fv(glGetUniformLocation(mainShader, "normalModelView"), 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(modelViewTransform))));
+		glUniform3fv(glGetUniformLocation(mainShader, "lightDir"), 1, glm::value_ptr(lightDirInViewSpace));
 
-        // Render object
         glBindVertexArray(objectVAO);
         glDrawArrays(GL_TRIANGLES, 0, obj.NF() * 3);
+
+        // ***************
+        // Render boundary
+        // ***************
+        glUseProgram(lineShader);
+        glUniformMatrix4fv(glGetUniformLocation(lineShader, "modelViewProjection"), 1, GL_FALSE, glm::value_ptr(projection * view));
+        glUniform3fv(glGetUniformLocation(lineShader, "lineColor"), 1, glm::value_ptr(glm::vec3{0.5f, 0.5f, 0.5f}));
+        glBindVertexArray(boxVAO);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, boxEBO);
+        glDrawElements(GL_LINES, boxIndices.size(), GL_UNSIGNED_INT, 0);
 
         glfwSwapBuffers(window);
         glfwPollEvents();

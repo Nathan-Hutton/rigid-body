@@ -13,9 +13,9 @@
 #include <vector>
 
 #include "cyCore/cyTriMesh.h"
-#include "lodepng.h"
 #include "ShaderHandler.h"
 #include "Input.h"
+#include "TriangleMesh.h"
 
 int main(int argc, char* argv[])
 {
@@ -107,14 +107,14 @@ int main(int argc, char* argv[])
     // **********
     const std::vector<GLfloat> boxVertices
     {
-        -5.0f, -5.0f, -5.0f,
-         5.0f, -5.0f, -5.0f,
-        -5.0f,  5.0f, -5.0f,
-         5.0f,  5.0f, -5.0f,
-        -5.0f, -5.0f, 5.0f,
-         5.0f, -5.0f, 5.0f,
-        -5.0f,  5.0f, 5.0f,
-         5.0f,  5.0f, 5.0f
+        -10.0f, -10.0f, -10.0f,
+         10.0f, -10.0f, -10.0f,
+        -10.0f,  10.0f, -10.0f,
+         10.0f,  10.0f, -10.0f,
+        -10.0f, -10.0f, 10.0f,
+         10.0f, -10.0f, 10.0f,
+        -10.0f,  10.0f, 10.0f,
+         10.0f,  10.0f, 10.0f
     };
 
     const std::vector<GLuint> boxIndices
@@ -166,7 +166,7 @@ int main(int argc, char* argv[])
 
     GLfloat xCameraRotateAmountObject{ 0.0f };
     GLfloat zCameraRotateAmountObject{ 0.0f };
-    GLfloat viewDistance{-5.0f};
+    GLfloat viewDistance{-30.0f};
 
     // Parameters to change light rotation
 	GLfloat zLightRotateAmount{ 0.0f };

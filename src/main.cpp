@@ -22,6 +22,7 @@ int main(int argc, char* argv[])
     if (argc < 2) // Since I want to just be able to ./main
     {
         argv[1] = strdup("../assets/dragon_80k.obj");
+        //argv[1] = strdup("../assets/armadillo_50k_tet.obj");
         //return -1;
     }
 
@@ -60,47 +61,7 @@ int main(int argc, char* argv[])
     // ***************
     // Handle obj data
     // ***************
-    cy::TriMesh obj { cy::TriMesh() };
-    obj.LoadFromFileObj(argv[1]);
-	obj.ComputeNormals(true);
-
-    // Handle obj data
-    std::vector<GLfloat> interleavedObjData;
-	for (size_t i { 0 }; i < obj.NF(); ++i)
-	{
-		const cy::TriMesh::TriFace& vertFace { obj.F(i) };
-		const cy::TriMesh::TriFace& normFace { obj.FN(i) };
-
-		for (size_t j { 0 }; j < 3; ++j)
-		{
-			const cy::Vec3f& vert { obj.V(vertFace.v[j]) };
-			const cy::Vec3f& norm { obj.VN(normFace.v[j]) };
-
-			for (size_t k { 0 }; k < 3; ++k)
-				interleavedObjData.push_back(vert[k]);
-			for (size_t k { 0 }; k < 3; ++k)
-				interleavedObjData.push_back(-norm[k]);
-		}
-	}
-
-    GLuint objectVAO, objectVBO;
-    glGenVertexArrays(1, &objectVAO);
-
-    glBindVertexArray(objectVAO);
-
-    glGenBuffers(1, &objectVBO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, objectVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * interleavedObjData.size(), interleavedObjData.data(), GL_STATIC_DRAW);
-
-    // Set vertex attributes
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)0); // Vertex positions
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)(sizeof(GL_FLOAT) * 3)); // Vertex normals
-    glEnableVertexAttribArray(1);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
+    TriangleMesh triMesh { TriangleMesh(argv[1]) };
 
     // **********
     // Handle box
@@ -232,8 +193,9 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(glGetUniformLocation(mainShader, "normalModelView"), 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(modelViewTransform))));
 		glUniform3fv(glGetUniformLocation(mainShader, "lightDir"), 1, glm::value_ptr(lightDirInViewSpace));
 
-        glBindVertexArray(objectVAO);
-        glDrawArrays(GL_TRIANGLES, 0, obj.NF() * 3);
+        glBindVertexArray(triMesh.getVAO());
+        glDrawElements(GL_TRIANGLES, triMesh.getNumIndices(), GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
 
         // ***************
         // Render boundary

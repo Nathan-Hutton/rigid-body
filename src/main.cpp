@@ -214,8 +214,8 @@ int main(int argc, char* argv[])
 
     while (!glfwWindowShouldClose(window)) 
     {
-        //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frameBuffer);
-        //glViewport(0, 0, mode->width, mode->height);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frameBuffer);
+        glViewport(0, 0, mode->width, mode->height);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // *****
@@ -274,13 +274,13 @@ int main(int argc, char* argv[])
         // ***********************
         // Render from framebuffer
         // ***********************
-        //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        //glViewport(0, 0, mode->width, mode->height);
-        //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glViewport(0, 0, mode->width, mode->height);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        //glUseProgram(quadShader);
-        //glBindVertexArray(quadVAO);
-        //glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        glUseProgram(quadShader);
+        glBindVertexArray(quadVAO);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
         // ***************
         // Render boundary

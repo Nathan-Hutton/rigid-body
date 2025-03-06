@@ -19,7 +19,6 @@ class TriangleMesh
             std::vector<GLfloat> interleavedObjData;
             std::unordered_map<std::string, GLuint> uniqueVertexMap;
             std::vector<GLuint> indices;
-            std::vector<GLuint> vertexIDs;
 
             GLuint indexCounter;
             for (size_t i { 0 }; i < obj.NF(); ++i)
@@ -48,8 +47,6 @@ class TriangleMesh
                         interleavedObjData.push_back(-norm.y);
                         interleavedObjData.push_back(-norm.z);
 
-                        interleavedObjData.push_back(static_cast<float>(indexCounter));
-
                         indices.push_back(indexCounter++);
                     }
                     else
@@ -74,12 +71,10 @@ class TriangleMesh
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), indices.data(), GL_STATIC_DRAW);
 
             // Set vertex attributes
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)0); // Vertex positions
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)0); // Vertex positions
             glEnableVertexAttribArray(0);
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(sizeof(GL_FLOAT) * 3)); // Vertex normals
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)(sizeof(GL_FLOAT) * 3)); // Vertex normals
             glEnableVertexAttribArray(1);
-            glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(sizeof(GL_FLOAT) * 6)); // Vertex normals
-            glEnableVertexAttribArray(2);
 
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             glBindVertexArray(0);

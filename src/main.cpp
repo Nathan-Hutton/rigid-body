@@ -62,6 +62,7 @@ int main(int argc, char* argv[])
     // Handle obj data
     // ***************
     TriangleMesh triMesh { TriangleMesh(argv[1]) };
+    compileShaders();
 
     // **********
     // Handle box
@@ -114,43 +115,9 @@ int main(int argc, char* argv[])
 
     glBindVertexArray(0);
 
-    // ********************
-    // Handle render buffer
-    // ********************
-    GLuint frameBuffer;
-    glGenFramebuffers(1, &frameBuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
-
-    // Make texture
-    GLuint renderedTextureID;
-    glGenTextures(1, &renderedTextureID);
-    glBindTexture(GL_TEXTURE_2D, renderedTextureID);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, mode->width, mode->height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-
-    // Make depth buffer
-    GLuint depthBuffer;
-    glGenRenderbuffers(1, &depthBuffer);
-    glBindRenderbuffer(GL_RENDERBUFFER, depthBuffer);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, mode->width, mode->height);
-
-    // Bind the framebuffer together
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuffer);
-    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTextureID, 0);
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-    {
-        std::cerr << "Something went wrong making the framebuffer\n";
-        return -1;
-    }
-
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glBindRenderbuffer(GL_RENDERBUFFER, 0);
-
-    // Make quad to draw to
+    // ***************************
+    // Handle quad for framebuffer
+    // ***************************
     const std::vector<GLfloat> quadVertices
     {
         -0.5f, -0.5f, 0.0f,      0.0f, 0.0f,  // Bottom left
@@ -158,6 +125,13 @@ int main(int argc, char* argv[])
         -0.5f, 0.5f, 0.0f,       0.0f, 1.0f,  // Top left
         0.5f, 0.5f, 0.0f,        1.0f, 1.0f   // Top right
     };
+    //const std::vector<GLfloat> quadVertices
+    //{
+    //    -1.0f, -1.0f, 0.0f,      0.0f, 0.0f,  // Bottom left
+    //    1.0f, -1.0f, 0.0f,       1.0f, 0.0f,  // Bottom right
+    //    -1.0f, 1.0f, 0.0f,       0.0f, 1.0f,  // Top left
+    //    1.0f, 1.0f, 0.0f,        1.0f, 1.0f   // Top right
+    //};
 
     GLuint quadVAO, quadVBO;
     glGenVertexArrays(1, &quadVAO);
@@ -177,10 +151,49 @@ int main(int argc, char* argv[])
 
     glBindVertexArray(0);
 
+    // ********************
+    // Handle render buffer
+    // ********************
+    GLuint frameBuffer;
+    glGenFramebuffers(1, &frameBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+
+    // Make texture
+    GLuint renderedTextureID;
+    glGenTextures(1, &renderedTextureID);
+    glBindTexture(GL_TEXTURE_2D, renderedTextureID);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, mode->width, mode->height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    // Make depth buffer
+    GLuint depthBuffer;
+    glGenRenderbuffers(1, &depthBuffer);
+    glBindRenderbuffer(GL_RENDERBUFFER, depthBuffer);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, mode->width, mode->height);
+
+    // Bind the framebuffer together
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuffer);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTextureID, 0);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    {
+        std::cerr << "Something went wrong making the framebuffer\n";
+        return -1;
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+    // Set texture in quad shader
+    glUseProgram(quadShader);
+    glActiveTexture(GL_TEXTURE0);
+    glUniform1i(glGetUniformLocation(quadShader, "quadTexture"), 0);
+
     // ****************
     // Scene properties
     // ****************
-    compileShaders();
     glClearColor(0.0f, 0.1f, 0.1f, 1.0f);
 
     const glm::mat4 projection { glm::perspective(glm::radians(45.0f), (float)mode->width / mode->height, 0.1f, 500.0f) };
@@ -201,12 +214,8 @@ int main(int argc, char* argv[])
 
     while (!glfwWindowShouldClose(window)) 
     {
-        double xCursorPos, yCursorPos;
-        glfwGetCursorPos(window, &xCursorPos, &yCursorPos);
-        unsigned char pixelColor[3];
-        glReadPixels(xCursorPos, mode->height - yCursorPos, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, pixelColor);
-        //glReadPixels(xCursorPos, mode->height - static_cast<int>(yCursorPos) - 1, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, pixelColor);
-
+        //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frameBuffer);
+        //glViewport(0, 0, mode->width, mode->height);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // *****
@@ -250,11 +259,10 @@ int main(int argc, char* argv[])
         // *************
         // Render object
         // *************
-        glUseProgram(mainShader);
-        glUniform1i(glGetUniformLocation(mainShader, "selectedVertex"), pixelColor[0]);
         const glm::mat4 model{ glm::scale(glm::mat4{1.0f}, glm::vec3{5.0f, 5.0f, 5.0f}) };
         const glm::mat4 modelViewTransform { view * model };
 
+        glUseProgram(mainShader);
         glUniformMatrix4fv(glGetUniformLocation(mainShader, "model"), 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(glGetUniformLocation(mainShader, "view"), 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(glGetUniformLocation(mainShader, "modelView"), 1, GL_FALSE, glm::value_ptr(modelViewTransform));
@@ -262,6 +270,17 @@ int main(int argc, char* argv[])
 		glUniform3fv(glGetUniformLocation(mainShader, "lightDir"), 1, glm::value_ptr(lightDirInViewSpace));
 
         triMesh.draw();
+
+        // ***********************
+        // Render from framebuffer
+        // ***********************
+        //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        //glViewport(0, 0, mode->width, mode->height);
+        //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        //glUseProgram(quadShader);
+        //glBindVertexArray(quadVAO);
+        //glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
         // ***************
         // Render boundary

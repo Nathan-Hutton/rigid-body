@@ -1,10 +1,19 @@
 #pragma once
 
+// This class is largely based on this video: https://www.youtube.com/watch?v=71G-PVpaVk8
+
 #include <GL/glew.h>
 
 class PickingTexture
 {
     public:
+        struct PixelInfo
+        {
+            uint objectID;
+            uint drawID;
+            uint primitiveID;
+        };
+
         PickingTexture(GLsizei width, GLsizei height)
         {
             m_width = width;
@@ -17,9 +26,10 @@ class PickingTexture
             glGenTextures(1, &m_texture);
             glBindTexture(GL_TEXTURE_2D, m_texture);
 
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_width, m_height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32UI, m_width, m_height, 0, GL_RGB_INTEGER, GL_UNSIGNED_INT, 0);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texture, 0);
 
             // Make depth buffer
             glGenRenderbuffers(1, &m_depthBuffer);
@@ -33,12 +43,14 @@ class PickingTexture
             if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
                 throw std::runtime_error("Something went wrong making the framebuffer\n");
 
+            glBindTexture(GL_TEXTURE_2D, 0);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
             glBindRenderbuffer(GL_RENDERBUFFER, 0);
         }
 
         void bind() { glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_frameBuffer); }
-        GLuint getTextureID() { return m_texture; };
+
+        PixelInfo readPixel(unsigned int x, unsigned int y);
 
         ~PickingTexture(){}
 

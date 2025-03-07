@@ -5,7 +5,7 @@
 
 GLuint mainShader;
 GLuint lineShader;
-GLuint quadShader;
+GLuint pickingShader;
 
 std::string readFile(const std::string& filePath)
 {
@@ -106,5 +106,5 @@ void compileShaders()
 {
     compileShader(mainShader, std::vector<std::string>{"../shaders/shader.vert", "../shaders/shader.frag"});
     compileShader(lineShader, std::vector<std::string>{"../shaders/lineShader.vert", "../shaders/lineShader.frag"});
-    compileShader(quadShader, std::vector<std::string>{"../shaders/quadShader.vert", "../shaders/quadShader.frag"});
+    compileShader(pickingShader, std::vector<std::string>{"../shaders/picking.vert", "../shaders/picking.frag"});
 }

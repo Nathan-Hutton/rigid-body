@@ -3,6 +3,7 @@
 // This class is largely based on this video: https://www.youtube.com/watch?v=71G-PVpaVk8
 
 #include <GL/glew.h>
+#include <iostream>
 
 class PickingTexture
 {
@@ -12,6 +13,11 @@ class PickingTexture
             uint objectID;
             uint drawID;
             uint primitiveID;
+
+            void print()
+            {
+                std::cout << "objectID: " << objectID << "\nDrawID: " << drawID << "\nPrimitiveID: " << primitiveID << "\n\n";
+            }
         };
 
         PickingTexture(GLsizei width, GLsizei height)

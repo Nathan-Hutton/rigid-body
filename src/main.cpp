@@ -145,15 +145,18 @@ int main(int argc, char* argv[])
         {
             pickingTexture.bind();
             glViewport(0, 0, mode->width, mode->height);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             glUseProgram(pickingShader);
 
             glUniformMatrix4fv(glGetUniformLocation(pickingShader, "mvp"), 1, GL_FALSE, glm::value_ptr(projection * view * model));
             glUniform1ui(glGetUniformLocation(pickingShader, "objectIndex"), 1);
             triMesh.draw();
 
+            PickingTexture::PixelInfo pixel{ pickingTexture.readPixel(xCursorPosPicking, mode->height - yCursorPosPicking - 1) };
+            //std::cout << "objectID: " << pixel.objectID << "\nDrawID: " << pixel.drawID << "\nPrimitiveID: " << pixel.primitiveID << "\n\n";
+
             pickingTexture.unbind();
             glViewport(0, 0, mode->width, mode->height);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         }
 
         // Render object to screen

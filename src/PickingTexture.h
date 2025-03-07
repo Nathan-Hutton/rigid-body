@@ -29,7 +29,9 @@ class PickingTexture
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32UI, m_width, m_height, 0, GL_RGB_INTEGER, GL_UNSIGNED_INT, 0);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texture, 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_texture, 0);
+            GLenum drawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
+            glDrawBuffers(1, drawBuffers);
 
             // Make depth buffer
             glGenRenderbuffers(1, &m_depthBuffer);
@@ -51,10 +53,12 @@ class PickingTexture
         PixelInfo readPixel(unsigned int x, unsigned int y)
         {
             glBindFramebuffer(GL_READ_FRAMEBUFFER, m_frameBuffer);
+            glReadBuffer(GL_COLOR_ATTACHMENT0);
 
             PixelInfo pixel;
             glReadPixels(x, y, 1, 1, GL_RGB_INTEGER, GL_UNSIGNED_INT, &pixel);
 
+            glReadBuffer(GL_NONE);
             glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
             return pixel;
         };

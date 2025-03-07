@@ -49,15 +49,15 @@ void processMouseInputObjectRotation(GLFWwindow* window, GLfloat& yRotateAmountC
     yCursorPos = newYPos;
 }
 
-bool processMouseInputPickingControls(GLFWwindow* window, int& xCursorPosChange, int& yCursorPosChange)
+bool processMouseInputPickingControls(GLFWwindow* window, int& xCursorPos, int& yCursorPos)
 {
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE || glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE)
         return false;
 
-    double xCursorPos, yCursorPos;
-    glfwGetCursorPos(window, &xCursorPos, &yCursorPos);
-    xCursorPos = xCursorPos;
-    yCursorPos = yCursorPos;
+    double xCursorPosDouble, yCursorPosDouble;
+    glfwGetCursorPos(window, &xCursorPosDouble, &yCursorPosDouble);
+    xCursorPos = static_cast<int>(xCursorPosDouble);
+    yCursorPos = static_cast<int>(yCursorPosDouble);
     return true;
 }
 

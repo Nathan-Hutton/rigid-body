@@ -16,6 +16,8 @@
 #include "ShaderHandler.h"
 #include "Input.h"
 #include "TriangleMesh.h"
+#include "PickingTexture.h"
+#include "BoundaryBox.h"
 
 int main(int argc, char* argv[])
 {
@@ -62,127 +64,11 @@ int main(int argc, char* argv[])
     // Handle obj data
     // ***************
     TriangleMesh triMesh { TriangleMesh(argv[1]) };
+    BoundaryBox boundary{ 10.0f };
     compileShaders();
 
-    // **********
-    // Handle box
-    // **********
-    const std::vector<GLfloat> boxVertices
-    {
-        -10.0f, -10.0f, -10.0f,
-         10.0f, -10.0f, -10.0f,
-        -10.0f,  10.0f, -10.0f,
-         10.0f,  10.0f, -10.0f,
-        -10.0f, -10.0f, 10.0f,
-         10.0f, -10.0f, 10.0f,
-        -10.0f,  10.0f, 10.0f,
-         10.0f,  10.0f, 10.0f
-    };
-
-    const std::vector<GLuint> boxIndices
-    {
-        0, 1,
-        1, 3,
-        3, 2,
-        2, 0,
-        4, 5,
-        5, 7,
-        7, 6,
-        6, 4,
-        0, 4,
-        2, 6,
-        3, 7,
-        1, 5
-    };
-
-    GLuint boxVAO, boxVBO, boxEBO;
-    glGenVertexArrays(1, &boxVAO);
-
-    glBindVertexArray(boxVAO);
-
-    glGenBuffers(1, &boxVBO);
-    glGenBuffers(1, &boxEBO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, boxVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * boxVertices.size(), boxVertices.data(), GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, boxEBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * boxIndices.size(), boxIndices.data(), GL_STATIC_DRAW);
-
-    // Set vertex attributes
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0); // Vertex positions
-    glEnableVertexAttribArray(0);
-
-    glBindVertexArray(0);
-
-    // ***************************
-    // Handle quad for framebuffer
-    // ***************************
-    const std::vector<GLfloat> quadVertices
-    {
-        -1.0f, -1.0f, 0.0f,      0.0f, 0.0f,  // Bottom left
-        1.0f, -1.0f, 0.0f,       1.0f, 0.0f,  // Bottom right
-        -1.0f, 1.0f, 0.0f,       0.0f, 1.0f,  // Top left
-        1.0f, 1.0f, 0.0f,        1.0f, 1.0f   // Top right
-    };
-
-    GLuint quadVAO, quadVBO;
-    glGenVertexArrays(1, &quadVAO);
-
-    glBindVertexArray(quadVAO);
-
-    glGenBuffers(1, &quadVBO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * quadVertices.size(), quadVertices.data(), GL_STATIC_DRAW);
-
-    // Set vertex attributes
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*)0); // Vertex positions
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*)(sizeof(GL_FLOAT) * 3)); // Texture coordinates
-    glEnableVertexAttribArray(1);
-
-    glBindVertexArray(0);
-
-    // ********************
-    // Handle render buffer
-    // ********************
-    GLuint frameBuffer;
-    glGenFramebuffers(1, &frameBuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
-
-    // Make texture
-    GLuint renderedTextureID;
-    glGenTextures(1, &renderedTextureID);
-    glBindTexture(GL_TEXTURE_2D, renderedTextureID);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, mode->width, mode->height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-    // Make depth buffer
-    GLuint depthBuffer;
-    glGenRenderbuffers(1, &depthBuffer);
-    glBindRenderbuffer(GL_RENDERBUFFER, depthBuffer);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, mode->width, mode->height);
-
-    // Bind the framebuffer together
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuffer);
-    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTextureID, 0);
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-    {
-        std::cerr << "Something went wrong making the framebuffer\n";
-        return -1;
-    }
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glBindRenderbuffer(GL_RENDERBUFFER, 0);
-
-    // Set texture in quad shader
-    glUseProgram(quadShader);
-    glActiveTexture(GL_TEXTURE0);
-    glUniform1i(glGetUniformLocation(quadShader, "quadTexture"), 0);
+    // Make picking texture so we can select vertices
+    PickingTexture pickingTexture{ mode->width, mode->height };
 
     // ****************
     // Scene properties
@@ -207,9 +93,9 @@ int main(int argc, char* argv[])
 
     while (!glfwWindowShouldClose(window)) 
     {
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, frameBuffer);
-        glViewport(0, 0, mode->width, mode->height);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        pickingTexture.bind();
+        glViewport(0, 0, mode->width, mode->height);
 
         // *****
         // Input
@@ -281,8 +167,7 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(glGetUniformLocation(lineShader, "modelViewProjection"), 1, GL_FALSE, glm::value_ptr(projection * view));
         glUniform3fv(glGetUniformLocation(lineShader, "lineColor"), 1, glm::value_ptr(glm::vec3{0.5f, 0.5f, 0.5f}));
 
-        glBindVertexArray(boxVAO);
-        glDrawElements(GL_LINES, boxIndices.size(), GL_UNSIGNED_INT, 0);
+        boundary.draw();
 
         glfwSwapBuffers(window);
         glfwPollEvents();

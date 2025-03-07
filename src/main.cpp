@@ -120,18 +120,11 @@ int main(int argc, char* argv[])
     // ***************************
     const std::vector<GLfloat> quadVertices
     {
-        -0.5f, -0.5f, 0.0f,      0.0f, 0.0f,  // Bottom left
-        0.5f, -0.5f, 0.0f,       1.0f, 0.0f,  // Bottom right
-        -0.5f, 0.5f, 0.0f,       0.0f, 1.0f,  // Top left
-        0.5f, 0.5f, 0.0f,        1.0f, 1.0f   // Top right
+        -1.0f, -1.0f, 0.0f,      0.0f, 0.0f,  // Bottom left
+        1.0f, -1.0f, 0.0f,       1.0f, 0.0f,  // Bottom right
+        -1.0f, 1.0f, 0.0f,       0.0f, 1.0f,  // Top left
+        1.0f, 1.0f, 0.0f,        1.0f, 1.0f   // Top right
     };
-    //const std::vector<GLfloat> quadVertices
-    //{
-    //    -1.0f, -1.0f, 0.0f,      0.0f, 0.0f,  // Bottom left
-    //    1.0f, -1.0f, 0.0f,       1.0f, 0.0f,  // Bottom right
-    //    -1.0f, 1.0f, 0.0f,       0.0f, 1.0f,  // Top left
-    //    1.0f, 1.0f, 0.0f,        1.0f, 1.0f   // Top right
-    //};
 
     GLuint quadVAO, quadVBO;
     glGenVertexArrays(1, &quadVAO);
@@ -256,11 +249,12 @@ int main(int argc, char* argv[])
         const glm::vec3 lightDir { glm::vec3{lightRotateMatrix * glm::vec4{1.0f, 0.0f, 0.0f, 0.0f}} };
         const glm::vec3 lightDirInViewSpace { -glm::normalize(view * glm::vec4(lightDir, 0.0f)) };
 
-        // *************
-        // Render object
-        // *************
         const glm::mat4 model{ glm::scale(glm::mat4{1.0f}, glm::vec3{5.0f, 5.0f, 5.0f}) };
         const glm::mat4 modelViewTransform { view * model };
+
+        // ****************************
+        // Render object to framebuffer
+        // ****************************
 
         glUseProgram(mainShader);
         glUniformMatrix4fv(glGetUniformLocation(mainShader, "model"), 1, GL_FALSE, glm::value_ptr(model));
@@ -272,22 +266,21 @@ int main(int argc, char* argv[])
         triMesh.draw();
 
         // ***********************
-        // Render from framebuffer
+        // Render object to screen
         // ***********************
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glViewport(0, 0, mode->width, mode->height);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glUseProgram(quadShader);
-        glBindVertexArray(quadVAO);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        triMesh.draw();
 
-        // ***************
-        // Render boundary
-        // ***************
+        // *************************
+        // Render boundary to screen
+        // *************************
         glUseProgram(lineShader);
         glUniformMatrix4fv(glGetUniformLocation(lineShader, "modelViewProjection"), 1, GL_FALSE, glm::value_ptr(projection * view));
         glUniform3fv(glGetUniformLocation(lineShader, "lineColor"), 1, glm::value_ptr(glm::vec3{0.5f, 0.5f, 0.5f}));
+
         glBindVertexArray(boxVAO);
         glDrawElements(GL_LINES, boxIndices.size(), GL_UNSIGNED_INT, 0);
 

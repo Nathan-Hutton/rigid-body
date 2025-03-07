@@ -24,7 +24,7 @@ void processMouseInputObjectRotation(GLFWwindow* window, GLfloat& yRotateAmountC
     }
 
     // Pressing ctrl. Adjusting light or plane, not teapot
-    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
     {
         leftMouseButtonHeld = false;
         yRotateAmountChange = 0.0f;
@@ -47,6 +47,22 @@ void processMouseInputObjectRotation(GLFWwindow* window, GLfloat& yRotateAmountC
     zRotateAmountChange = yCursorPos - newYPos;
     xCursorPos = newXPos;
     yCursorPos = newYPos;
+}
+
+bool processMouseInputPickingControls(GLFWwindow* window, int& xCursorPosChange, int& yCursorPosChange)
+{
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE || glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE)
+	{
+        xCursorPosChange = 0.0f;
+        yCursorPosChange = 0.0f;
+        return false;
+	}
+
+    double xCursorPos, yCursorPos;
+    glfwGetCursorPos(window, &xCursorPos, &yCursorPos);
+    xCursorPos = xCursorPos;
+    yCursorPos = yCursorPos;
+    return true;
 }
 
 void processMouseInputObjectDistance(GLFWwindow* window, GLfloat& cameraDistanceChange)

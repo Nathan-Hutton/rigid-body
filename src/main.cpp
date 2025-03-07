@@ -86,6 +86,10 @@ int main(int argc, char* argv[])
 	GLfloat zLightRotateAmount{ 0.0f };
 	GLfloat yLightRotateAmount{ 0.0f };
 
+    // Parameters for pixel picking
+    int xCursorPosPicking;
+    int yCursorPosPicking;
+
     // Set uniform variables in shaders that won't change
     glUseProgram(mainShader);
     glUniformMatrix4fv(glGetUniformLocation(mainShader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
@@ -94,9 +98,6 @@ int main(int argc, char* argv[])
     while (!glfwWindowShouldClose(window)) 
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        pickingTexture.bind();
-        glViewport(0, 0, mode->width, mode->height);
-
         // *****
         // Input
         // *****
@@ -138,19 +139,28 @@ int main(int argc, char* argv[])
         const glm::mat4 model{ glm::scale(glm::mat4{1.0f}, glm::vec3{5.0f, 5.0f, 5.0f}) };
         const glm::mat4 modelViewTransform { view * model };
 
+        bool isPickingPixel{ processMouseInputPickingControls(window, xCursorPosPicking, yCursorPosPicking) };
+
         // ****************************
         // Render object to framebuffer
         // ****************************
-        glUseProgram(pickingShader);
-        glUniformMatrix4fv(glGetUniformLocation(pickingShader, "mvp"), 1, GL_FALSE, glm::value_ptr(projection * view * model));
-        triMesh.draw();
+        if (isPickingPixel)
+        {
+            pickingTexture.bind();
+            glViewport(0, 0, mode->width, mode->height);
+            glUseProgram(pickingShader);
 
-        // ***********************
-        // Render object to screen
-        // ***********************
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        glViewport(0, 0, mode->width, mode->height);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glUniformMatrix4fv(glGetUniformLocation(pickingShader, "mvp"), 1, GL_FALSE, glm::value_ptr(projection * view * model));
+            glUniform1ui(glGetUniformLocation(pickingShader, "objectIndex"), 1);
+            triMesh.draw();
+
+            // ***********************
+            // Render object to screen
+            // ***********************
+            pickingTexture.unbind();
+            glViewport(0, 0, mode->width, mode->height);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        }
 
         glUseProgram(mainShader);
         glUniformMatrix4fv(glGetUniformLocation(mainShader, "model"), 1, GL_FALSE, glm::value_ptr(model));

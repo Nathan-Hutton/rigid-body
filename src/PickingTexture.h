@@ -48,9 +48,19 @@ class PickingTexture
             glBindRenderbuffer(GL_RENDERBUFFER, 0);
         }
 
-        void bind() { glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_frameBuffer); }
+        PixelInfo readPixel(unsigned int x, unsigned int y)
+        {
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, m_frameBuffer);
 
-        PixelInfo readPixel(unsigned int x, unsigned int y);
+            PixelInfo pixel;
+            glReadPixels(x, y, 1, 1, GL_RGB_INTEGER, GL_UNSIGNED_INT, &pixel);
+
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+            return pixel;
+        };
+
+        void bind() { glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_frameBuffer); }
+        void unbind() { glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); }
 
         ~PickingTexture(){}
 

@@ -141,6 +141,7 @@ int main(int argc, char* argv[])
         bool isPickingPixel{ processMouseInputPickingControls(window, xCursorPosPicking, yCursorPosPicking) };
 
         // Render object to framebuffer
+        GLuint selectedTriangle{ 0 };
         if (isPickingPixel)
         {
             pickingTexture.bind();
@@ -153,6 +154,7 @@ int main(int argc, char* argv[])
             triMesh.draw();
 
             PickingTexture::PixelInfo pixel{ pickingTexture.readPixel(xCursorPosPicking, mode->height - yCursorPosPicking - 1) };
+            selectedTriangle = pixel.primitiveID;
             //std::cout << "objectID: " << pixel.objectID << "\nDrawID: " << pixel.drawID << "\nPrimitiveID: " << pixel.primitiveID << "\n\n";
 
             pickingTexture.unbind();
@@ -161,6 +163,7 @@ int main(int argc, char* argv[])
 
         // Render object to screen
         glUseProgram(mainShader);
+        glUniform1ui(glGetUniformLocation(mainShader, "selectedTriangle"), selectedTriangle);
         glUniformMatrix4fv(glGetUniformLocation(mainShader, "model"), 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(glGetUniformLocation(mainShader, "view"), 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(glGetUniformLocation(mainShader, "modelView"), 1, GL_FALSE, glm::value_ptr(modelViewTransform));

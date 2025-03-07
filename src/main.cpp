@@ -145,7 +145,9 @@ int main(int argc, char* argv[])
         {
             pickingTexture.bind();
             glViewport(0, 0, mode->width, mode->height);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glClear(GL_DEPTH_BUFFER_BIT);
+            GLuint clearColor[] { 0, 0, 0xFFFFFFFF }; // Doing this so that I can tell if I've selected the background instead of the object
+            glClearBufferuiv(GL_COLOR, 0, clearColor);
             glUseProgram(pickingShader);
 
             glUniformMatrix4fv(glGetUniformLocation(pickingShader, "mvp"), 1, GL_FALSE, glm::value_ptr(projection * view * model));
@@ -159,13 +161,16 @@ int main(int argc, char* argv[])
             glViewport(0, 0, mode->width, mode->height);
 
             // Render selected triangle to the screen
-            glEnable(GL_POLYGON_OFFSET_FILL); // This basically pushes it ahead of the triangle that will be rendered in the normal render pass
-            glPolygonOffset(-1.0f, -1.0f);
-            glUseProgram(highlightShader);
-            glUniform1ui(glGetUniformLocation(highlightShader, "selectedTriangle"), selectedTriangle);
-            glUniformMatrix4fv(glGetUniformLocation(highlightShader, "mvp"), 1, GL_FALSE, glm::value_ptr(projection * view * model));
-            triMesh.draw();
-            glDisable(GL_POLYGON_OFFSET_FILL);
+            if (selectedTriangle != 0xFFFFFFFFu)
+            {
+                glEnable(GL_POLYGON_OFFSET_FILL); // This basically pushes it ahead of the triangle that will be rendered in the normal render pass
+                glPolygonOffset(-1.0f, -1.0f);
+                glUseProgram(highlightShader);
+                glUniform1ui(glGetUniformLocation(highlightShader, "selectedTriangle"), selectedTriangle);
+                glUniformMatrix4fv(glGetUniformLocation(highlightShader, "mvp"), 1, GL_FALSE, glm::value_ptr(projection * view * model));
+                triMesh.draw();
+                glDisable(GL_POLYGON_OFFSET_FILL);
+            }
         }
 
         // Render object to screen

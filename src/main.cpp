@@ -86,10 +86,6 @@ int main(int argc, char* argv[])
 	GLfloat zLightRotateAmount{ 0.0f };
 	GLfloat yLightRotateAmount{ 0.0f };
 
-    // Parameters for pixel picking
-    int xCursorPosPicking;
-    int yCursorPosPicking;
-
     // Set uniform variables in shaders that won't change
     glUseProgram(mainShader);
     glUniformMatrix4fv(glGetUniformLocation(mainShader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
@@ -98,9 +94,8 @@ int main(int argc, char* argv[])
     while (!glfwWindowShouldClose(window)) 
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        // *****
+
         // Input
-        // *****
         GLfloat xRotateAmountChange;
         GLfloat zRotateAmountChange;
         processMouseInputObjectRotation(window, xRotateAmountChange, zRotateAmountChange);
@@ -127,6 +122,7 @@ int main(int argc, char* argv[])
 		yLightRotateAmount = fmod(yLightRotateAmount, 360.0f);
 		zLightRotateAmount = fmod(zLightRotateAmount, 360.0f);
 
+        // Setup transforms
         glm::mat4 view { glm::translate(glm::mat4{1.0f}, viewDir * viewDistance) };
         view = glm::rotate(view, glm::radians(-xCameraRotateAmountObject), glm::vec3{1.0f, 0.0f,0.0f});
         view = glm::rotate(view, glm::radians(-zCameraRotateAmountObject), glm::vec3{0.0f, 1.0f, 0.0f});
@@ -139,11 +135,12 @@ int main(int argc, char* argv[])
         const glm::mat4 model{ glm::scale(glm::mat4{1.0f}, glm::vec3{5.0f, 5.0f, 5.0f}) };
         const glm::mat4 modelViewTransform { view * model };
 
+        // Pixel picking
+        int xCursorPosPicking;
+        int yCursorPosPicking;
         bool isPickingPixel{ processMouseInputPickingControls(window, xCursorPosPicking, yCursorPosPicking) };
 
-        // ****************************
         // Render object to framebuffer
-        // ****************************
         if (isPickingPixel)
         {
             pickingTexture.bind();
@@ -154,14 +151,12 @@ int main(int argc, char* argv[])
             glUniform1ui(glGetUniformLocation(pickingShader, "objectIndex"), 1);
             triMesh.draw();
 
-            // ***********************
-            // Render object to screen
-            // ***********************
             pickingTexture.unbind();
             glViewport(0, 0, mode->width, mode->height);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         }
 
+        // Render object to screen
         glUseProgram(mainShader);
         glUniformMatrix4fv(glGetUniformLocation(mainShader, "model"), 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(glGetUniformLocation(mainShader, "view"), 1, GL_FALSE, glm::value_ptr(view));
@@ -170,13 +165,10 @@ int main(int argc, char* argv[])
 		glUniform3fv(glGetUniformLocation(mainShader, "lightDir"), 1, glm::value_ptr(lightDirInViewSpace));
         triMesh.draw();
 
-        // *************************
         // Render boundary to screen
-        // *************************
         glUseProgram(lineShader);
         glUniformMatrix4fv(glGetUniformLocation(lineShader, "modelViewProjection"), 1, GL_FALSE, glm::value_ptr(projection * view));
         glUniform3fv(glGetUniformLocation(lineShader, "lineColor"), 1, glm::value_ptr(glm::vec3{0.5f, 0.5f, 0.5f}));
-
         boundary.draw();
 
         glfwSwapBuffers(window);

@@ -3,6 +3,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/orthonormalize.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 #include <iostream>
@@ -62,7 +63,7 @@ int main(int argc, char* argv[])
 
     // Handle objects
     constexpr float dragonScalingFactor{ 5.0f };
-    TriangleMesh triMesh { TriangleMesh(argv[1]) };
+    TriangleMesh triMesh { TriangleMesh(argv[1], 10.0f) };
     glm::vec3 com{ triMesh.getCenterOfMass() };
     BoundaryBox boundary{ 10.0f };
 
@@ -92,8 +93,15 @@ int main(int argc, char* argv[])
     glUniform3fv(glGetUniformLocation(mainShader, "diffuseMaterialColor"), 1, glm::value_ptr(glm::vec3{0.5f, 1.0f, 1.0f}));
 
     GLuint selectedTriangle{ 0xFFFFFFFFu };
+    glm::mat4 modelRotation{ 1.0f };
+    glm::vec3 angularVelocity{ 1.0f };
+    GLfloat lastFrameTime{ static_cast<GLfloat>(glfwGetTime()) };
     while (!glfwWindowShouldClose(window)) 
     {
+        const GLfloat currentTime{ static_cast<GLfloat>(glfwGetTime()) };
+        const GLfloat deltaTime{ currentTime - lastFrameTime };
+        lastFrameTime = currentTime;
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Input
@@ -133,7 +141,33 @@ int main(int argc, char* argv[])
         const glm::vec3 lightDir { glm::vec3{lightRotateMatrix * glm::vec4{1.0f, 0.0f, 0.0f, 0.0f}} };
         const glm::vec3 lightDirInViewSpace { -glm::normalize(view * glm::vec4(lightDir, 0.0f)) };
 
-        const glm::mat4 model{ glm::scale(glm::mat4{1.0f}, glm::vec3{dragonScalingFactor}) };
+        glm::mat4 model{ glm::scale(glm::mat4{1.0f}, glm::vec3{dragonScalingFactor}) };
+        model *= modelRotation;
+
+        // Temporary test for physics of dragon
+        glm::mat3 rotationMat{ modelRotation };
+        constexpr glm::vec3 forceWorldSpace{ 0.0f, 0.0f, -1.0f };
+        const glm::vec3 forcePointWorldSpace{ glm::mat3{ rotationMat } * glm::vec3{ -0.672218f, 0.603643f, 0.124265f } };
+        const glm::vec3 comWorldSpace{ glm::mat3{ rotationMat } * triMesh.getCenterOfMass() };
+
+        const glm::vec3 positionFromCOMWorldSpace{ forcePointWorldSpace - comWorldSpace };
+        const glm::vec3 torque{ glm::cross(positionFromCOMWorldSpace, forceWorldSpace) };
+
+        const glm::mat3 inertiaTensorInverse { glm::inverse(glm::mat3{ rotationMat } * triMesh.getInertiaTensor() * glm::transpose(glm::mat3{ rotationMat })) };
+        const glm::vec3 angularAcceleration = inertiaTensorInverse * torque;
+        angularVelocity += angularAcceleration * deltaTime;
+
+        const glm::mat3 angularVelocitySkewSymmetricMatrix {
+            0.0f, -angularVelocity.z, angularVelocity.y,
+            angularVelocity.z, 0.0f, -angularVelocity.x,
+            -angularVelocity.y, angularVelocity.x,  0.0f
+        };
+
+        const glm::mat3 rotationUpdate{ glm::mat3{ 1.0f } + deltaTime * angularVelocitySkewSymmetricMatrix };
+        rotationMat = rotationUpdate * rotationMat;
+        rotationMat = glm::orthonormalize(rotationMat);
+        modelRotation = glm::mat4{ rotationMat };
+
         const glm::mat4 modelViewTransform { view * model };
 
         // Get selected triangle with mouse input

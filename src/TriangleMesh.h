@@ -11,8 +11,10 @@
 class TriangleMesh
 {
     public:
-        TriangleMesh(const std::string& objectFilePath)
+        TriangleMesh(const std::string& objectFilePath, float mass)
         {
+            m_mass = mass;
+
             cy::TriMesh obj { cy::TriMesh() };
             obj.LoadFromFileObj(objectFilePath.c_str());
             obj.ComputeNormals(true);
@@ -90,8 +92,33 @@ class TriangleMesh
 
         glm::vec3 getCenterOfMass() { return m_centerOfMass; }
 
+        glm::mat3 getInertiaTensor()
+        {
+            glm::mat3 inertiaTensor{ 0.0f };
+
+            for (glm::vec3 vertex : m_vertexPositions)
+            {
+                vertex -= m_centerOfMass;
+                float squaredDistanceFromOrigin{ glm::dot(vertex, vertex) };
+                glm::mat3 vertexInertia
+                {
+                    glm::mat3 
+                    {
+                        squaredDistanceFromOrigin, 0.0f, 0.0f,
+                        0.0f, squaredDistanceFromOrigin, 0.0f,
+                        0.0f, 0.0f, squaredDistanceFromOrigin
+                    } - glm::outerProduct(vertex, vertex)
+                };
+
+                inertiaTensor += vertexInertia;
+            }
+
+            return (m_mass / m_vertexPositions.size()) * inertiaTensor;
+        }
+
     private:
         std::vector<glm::vec3> m_vertexPositions;
+        float m_mass;
         GLuint m_VAO;
         unsigned int m_numIndices;
         glm::dvec3 m_centerOfMass;

@@ -3,6 +3,7 @@
 #include "cyCore/cyTriMesh.h"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
 #include <vector>
 #include <unordered_map>
 #include <string>
@@ -48,14 +49,17 @@ class TriangleMesh
                         interleavedObjData.push_back(-norm.z);
 
                         indices.push_back(indexCounter++);
+
+                        m_centerOfMass += glm::dvec3{ vert.x, vert.y, vert.z };
                     }
                     else
                         indices.push_back(uniqueVertexMap[vertexKey.str()]);
                 }
             }
-
             m_numIndices = indices.size();
+            m_centerOfMass /= static_cast<double>(uniqueVertexMap.size());
 
+            // Handle VAO
             GLuint VBO, EBO;
             glGenVertexArrays(1, &m_VAO);
 
@@ -86,7 +90,11 @@ class TriangleMesh
             glDrawElements(GL_TRIANGLES, m_numIndices, GL_UNSIGNED_INT, 0);
         }
 
+        glm::vec3 getCenterOfMass() { return m_centerOfMass; }
+
     private:
         GLuint m_VAO;
         unsigned int m_numIndices;
+        glm::dvec3 m_centerOfMass;
+
 };

@@ -64,6 +64,7 @@ int main(int argc, char* argv[])
     // Handle obj data
     // ***************
     TriangleMesh triMesh { TriangleMesh(argv[1]) };
+    glm::vec3 com{ triMesh.getCenterOfMass() };
     BoundaryBox boundary{ 10.0f };
     compileShaders();
 
@@ -136,10 +137,8 @@ int main(int argc, char* argv[])
         const glm::mat4 model{ glm::scale(glm::mat4{1.0f}, glm::vec3{5.0f, 5.0f, 5.0f}) };
         const glm::mat4 modelViewTransform { view * model };
 
-        // Pixel picking
+        // Get selected triangle with mouse input
         bool isTryingToPickTriangle{ processMouseInputIsTryingToPick(window, selectedTriangle) };
-
-        // Handle vertex selection
         if (isTryingToPickTriangle)
         {
             pickingTexture.bind();
@@ -153,6 +152,7 @@ int main(int argc, char* argv[])
             glUniformMatrix4fv(glGetUniformLocation(pickingShader, "mvp"), 1, GL_FALSE, glm::value_ptr(projection * view * model));
             glUniform1ui(glGetUniformLocation(pickingShader, "objectIndex"), 1);
             triMesh.draw();
+
             pickingTexture.unbind();
             glViewport(0, 0, mode->width, mode->height);
 

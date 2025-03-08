@@ -59,6 +59,10 @@ bool processMouseInputIsTryingToPick(GLFWwindow* window, GLuint& selectedTriangl
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE)
     {
         shiftHeld = false;
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
+            leftMouseHeld = false;
+        else
+            leftMouseHeld = true;
         return false;
     }
 

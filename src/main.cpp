@@ -60,15 +60,13 @@ int main(int argc, char* argv[])
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 
-    // ***************
-    // Handle obj data
-    // ***************
+    // Handle objects
     TriangleMesh triMesh { TriangleMesh(argv[1]) };
     glm::vec3 com{ triMesh.getCenterOfMass() };
     BoundaryBox boundary{ 10.0f };
-    compileShaders();
 
     // Make picking texture so we can select vertices
+    compileShaders();
     PickingTexture pickingTexture{ mode->width, mode->height };
 
     // ****************

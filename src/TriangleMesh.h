@@ -17,8 +17,9 @@ class TriangleMesh
             obj.LoadFromFileObj(objectFilePath.c_str());
             obj.ComputeNormals(true);
 
-            std::vector<GLfloat> interleavedObjData;
+            //std::vector<GLfloat> interleavedObjData;
             std::unordered_map<std::string, GLuint> uniqueVertexMap;
+            std::vector<glm::vec3> vertexNormals;
             std::vector<GLuint> indices;
 
             GLuint indexCounter;
@@ -39,17 +40,10 @@ class TriangleMesh
                     if (uniqueVertexMap.find(vertexKey.str()) == uniqueVertexMap.end())
                     {
                         uniqueVertexMap[vertexKey.str()] = indexCounter;
-
-                        interleavedObjData.push_back(vert.x);
-                        interleavedObjData.push_back(vert.y);
-                        interleavedObjData.push_back(vert.z);
-
-                        interleavedObjData.push_back(-norm.x);
-                        interleavedObjData.push_back(-norm.y);
-                        interleavedObjData.push_back(-norm.z);
-
                         indices.push_back(indexCounter++);
 
+                        m_vertexPositions.push_back(glm::vec3{vert.x, vert.y, vert.z});
+                        vertexNormals.push_back(-glm::vec3{norm.x, norm.y, norm.z});
                         m_centerOfMass += glm::dvec3{ vert.x, vert.y, vert.z };
                     }
                     else
@@ -57,28 +51,32 @@ class TriangleMesh
                 }
             }
             m_numIndices = indices.size();
-            m_centerOfMass /= static_cast<double>(uniqueVertexMap.size());
+            m_centerOfMass /= static_cast<double>(m_vertexPositions.size());
 
             // Handle VAO
-            GLuint VBO, EBO;
+            GLuint VBO_positions, VBO_normals, EBO;
             glGenVertexArrays(1, &m_VAO);
 
             glBindVertexArray(m_VAO);
 
-            glGenBuffers(1, &VBO);
             glGenBuffers(1, &EBO);
 
-            glBindBuffer(GL_ARRAY_BUFFER, VBO);
-            glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * interleavedObjData.size(), interleavedObjData.data(), GL_STATIC_DRAW);
+            // Set vertex positions attribute
+            glGenBuffers(1, &VBO_positions);
+            glBindBuffer(GL_ARRAY_BUFFER, VBO_positions);
+            glBufferData(GL_ARRAY_BUFFER, m_vertexPositions.size() * sizeof(glm::vec3), m_vertexPositions.data(), GL_STATIC_DRAW);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+            glEnableVertexAttribArray(0);
+
+            // Set vertex normals attribute
+            glGenBuffers(1, &VBO_normals);
+            glBindBuffer(GL_ARRAY_BUFFER, VBO_normals);
+            glBufferData(GL_ARRAY_BUFFER, m_vertexPositions.size() * sizeof(glm::vec3), vertexNormals.data(), GL_STATIC_DRAW);
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+            glEnableVertexAttribArray(1);
 
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), indices.data(), GL_STATIC_DRAW);
-
-            // Set vertex attributes
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)0); // Vertex positions
-            glEnableVertexAttribArray(0);
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)(sizeof(GL_FLOAT) * 3)); // Vertex normals
-            glEnableVertexAttribArray(1);
 
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             glBindVertexArray(0);
@@ -93,6 +91,7 @@ class TriangleMesh
         glm::vec3 getCenterOfMass() { return m_centerOfMass; }
 
     private:
+        std::vector<glm::vec3> m_vertexPositions;
         GLuint m_VAO;
         unsigned int m_numIndices;
         glm::dvec3 m_centerOfMass;

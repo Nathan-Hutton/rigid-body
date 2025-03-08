@@ -91,6 +91,7 @@ int main(int argc, char* argv[])
     glUniformMatrix4fv(glGetUniformLocation(mainShader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
     glUniform3fv(glGetUniformLocation(mainShader, "diffuseMaterialColor"), 1, glm::value_ptr(glm::vec3{1.0f, 1.0f, 1.0f}));
 
+    GLuint selectedTriangle{ 0xFFFFFFFFu };
     while (!glfwWindowShouldClose(window)) 
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -136,41 +137,43 @@ int main(int argc, char* argv[])
         const glm::mat4 modelViewTransform { view * model };
 
         // Pixel picking
-        int xCursorPosPicking;
-        int yCursorPosPicking;
-        bool isPickingPixel{ processMouseInputPickingControls(window, xCursorPosPicking, yCursorPosPicking) };
+        bool isTryingToPickTriangle{ processMouseInputIsTryingToPick(window, selectedTriangle) };
 
-        // Render object to framebuffer
-        if (isPickingPixel)
+        // Handle vertex selection
+        if (isTryingToPickTriangle)
         {
             pickingTexture.bind();
             glViewport(0, 0, mode->width, mode->height);
             glClear(GL_DEPTH_BUFFER_BIT);
-            GLuint clearColor[] { 0, 0, 0xFFFFFFFF }; // Doing this so that I can tell if I've selected the background instead of the object
+            GLuint clearColor[] { 0, 0, 0xFFFFFFFFu }; // Doing this so that I can tell if I've selected the background instead of the object
             glClearBufferuiv(GL_COLOR, 0, clearColor);
-            glUseProgram(pickingShader);
 
+            // Render info about the object to a framebuffer so we can see which triangle we're clicking on
+            glUseProgram(pickingShader);
             glUniformMatrix4fv(glGetUniformLocation(pickingShader, "mvp"), 1, GL_FALSE, glm::value_ptr(projection * view * model));
             glUniform1ui(glGetUniformLocation(pickingShader, "objectIndex"), 1);
             triMesh.draw();
-
-            PickingTexture::PixelInfo pixel{ pickingTexture.readPixel(xCursorPosPicking, mode->height - yCursorPosPicking - 1) };
-            GLuint selectedTriangle{ pixel.primitiveID };
-
             pickingTexture.unbind();
             glViewport(0, 0, mode->width, mode->height);
 
-            // Render selected triangle to the screen
-            if (selectedTriangle != 0xFFFFFFFFu)
-            {
-                glEnable(GL_POLYGON_OFFSET_FILL); // This basically pushes it ahead of the triangle that will be rendered in the normal render pass
-                glPolygonOffset(-1.0f, -1.0f);
-                glUseProgram(highlightShader);
-                glUniform1ui(glGetUniformLocation(highlightShader, "selectedTriangle"), selectedTriangle);
-                glUniformMatrix4fv(glGetUniformLocation(highlightShader, "mvp"), 1, GL_FALSE, glm::value_ptr(projection * view * model));
-                triMesh.draw();
-                glDisable(GL_POLYGON_OFFSET_FILL);
-            }
+            // Figure out which triangle we're clicking
+            int xCursorPosPicking;
+            int yCursorPosPicking;
+            processMouseInputPickingControls(window, xCursorPosPicking, yCursorPosPicking);
+            PickingTexture::PixelInfo pixel{ pickingTexture.readPixel(xCursorPosPicking, mode->height - yCursorPosPicking - 1) };
+            selectedTriangle = pixel.primitiveID;
+        }
+
+        // Render selected triangle to the screen
+        if (selectedTriangle != 0xFFFFFFFFu)
+        {
+            glEnable(GL_POLYGON_OFFSET_FILL); // This basically pushes it ahead of the triangle that will be rendered in the normal render pass
+            glPolygonOffset(-1.0f, -1.0f);
+            glUseProgram(highlightShader);
+            glUniform1ui(glGetUniformLocation(highlightShader, "selectedTriangle"), selectedTriangle);
+            glUniformMatrix4fv(glGetUniformLocation(highlightShader, "mvp"), 1, GL_FALSE, glm::value_ptr(projection * view * model));
+            triMesh.draw();
+            glDisable(GL_POLYGON_OFFSET_FILL);
         }
 
         // Render object to screen

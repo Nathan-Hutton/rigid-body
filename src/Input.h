@@ -49,16 +49,47 @@ void processMouseInputObjectRotation(GLFWwindow* window, GLfloat& yRotateAmountC
     yCursorPos = newYPos;
 }
 
-bool processMouseInputPickingControls(GLFWwindow* window, int& xCursorPos, int& yCursorPos)
+// This function can alter selectedTriangle so that when you press shift for the first time while already having a triangle
+// selected, you will unselect the triangle (set it to 0xFFFFFFFFu
+bool processMouseInputIsTryingToPick(GLFWwindow* window, GLuint& selectedTriangle)
 {
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE || glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE)
+    static bool shiftHeld{ false };
+    static bool leftMouseHeld{ false };
+
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE)
+    {
+        shiftHeld = false;
+        return false;
+    }
+
+    // Check if pressing shift for the first time since releasing it, then unselect any triangle
+    if (!shiftHeld)
+    {
+        selectedTriangle = 0xFFFFFFFFu;
+        shiftHeld = true;
+    }
+
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
+    {
+        leftMouseHeld = false;
+        return false;
+    }
+
+    // You need to click on the triangle,
+    // I don't want to be able to drag the mouse over the mesh and rapidly select a bunch of triangles while the mesh moves
+    if (leftMouseHeld)
         return false;
 
+    leftMouseHeld = true;
+    return true;
+}
+
+void processMouseInputPickingControls(GLFWwindow* window, int& xCursorPos, int& yCursorPos)
+{
     double xCursorPosDouble, yCursorPosDouble;
     glfwGetCursorPos(window, &xCursorPosDouble, &yCursorPosDouble);
     xCursorPos = static_cast<int>(xCursorPosDouble);
     yCursorPos = static_cast<int>(yCursorPosDouble);
-    return true;
 }
 
 void processMouseInputObjectDistance(GLFWwindow* window, GLfloat& cameraDistanceChange)

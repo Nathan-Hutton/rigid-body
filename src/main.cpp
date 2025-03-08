@@ -61,6 +61,7 @@ int main(int argc, char* argv[])
 	glDepthFunc(GL_LESS);
 
     // Handle objects
+    constexpr float dragonScalingFactor{ 5.0f };
     TriangleMesh triMesh { TriangleMesh(argv[1]) };
     glm::vec3 com{ triMesh.getCenterOfMass() };
     BoundaryBox boundary{ 10.0f };
@@ -88,7 +89,7 @@ int main(int argc, char* argv[])
     // Set uniform variables in shaders that won't change
     glUseProgram(mainShader);
     glUniformMatrix4fv(glGetUniformLocation(mainShader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-    glUniform3fv(glGetUniformLocation(mainShader, "diffuseMaterialColor"), 1, glm::value_ptr(glm::vec3{1.0f, 1.0f, 1.0f}));
+    glUniform3fv(glGetUniformLocation(mainShader, "diffuseMaterialColor"), 1, glm::value_ptr(glm::vec3{0.5f, 1.0f, 1.0f}));
 
     GLuint selectedTriangle{ 0xFFFFFFFFu };
     while (!glfwWindowShouldClose(window)) 
@@ -132,7 +133,7 @@ int main(int argc, char* argv[])
         const glm::vec3 lightDir { glm::vec3{lightRotateMatrix * glm::vec4{1.0f, 0.0f, 0.0f, 0.0f}} };
         const glm::vec3 lightDirInViewSpace { -glm::normalize(view * glm::vec4(lightDir, 0.0f)) };
 
-        const glm::mat4 model{ glm::scale(glm::mat4{1.0f}, glm::vec3{5.0f, 5.0f, 5.0f}) };
+        const glm::mat4 model{ glm::scale(glm::mat4{1.0f}, glm::vec3{dragonScalingFactor}) };
         const glm::mat4 modelViewTransform { view * model };
 
         // Get selected triangle with mouse input

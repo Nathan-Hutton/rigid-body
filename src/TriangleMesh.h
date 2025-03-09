@@ -23,7 +23,8 @@ class TriangleMesh
             std::unordered_map<std::string, GLuint> uniqueVertexMap;
             std::vector<glm::vec3> vertexNormals;
 
-            GLuint indexCounter;
+            m_centerOfMass = glm::dvec3{ 0.0f };
+            GLuint indexCounter{ 0 };
             for (size_t i { 0 }; i < obj.NF(); ++i)
             {
                 const cy::TriMesh::TriFace& vertFace { obj.F(i) };

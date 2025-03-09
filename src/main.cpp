@@ -60,6 +60,7 @@ int main(int argc, char* argv[])
     }
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
+    compileShaders();
 
     // Handle objects
     TriangleMesh triMesh { TriangleMesh(argv[1], 10.0f, 5.0f) };
@@ -67,7 +68,6 @@ int main(int argc, char* argv[])
     BoundaryBox boundary{ 10.0f };
 
     // Make picking texture so we can select vertices
-    compileShaders();
     PickingTexture pickingTexture{ mode->width, mode->height };
 
     // ****************

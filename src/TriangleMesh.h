@@ -121,6 +121,16 @@ class TriangleMesh
             return m_vertexPositions[m_indices[triangleID * 3]];
         }
 
+        glm::vec3 getVertexPosition(GLuint index)
+        {
+            return m_vertexPositions[index];
+        }
+
+        GLuint getNumVertices()
+        {
+            return m_vertexPositions.size();
+        }
+
         float getMass() { return m_mass; }
 
     private:

@@ -66,7 +66,8 @@ int main(int argc, char* argv[])
     // Handle objects
     TriangleMesh triMesh { TriangleMesh(argv[1], 10.0f, 5.0f) };
     glm::vec3 com{ triMesh.getCenterOfMass() };
-    BoundaryBox boundary{ 10.0f };
+    constexpr GLfloat boundaryBoxSize{ 10.0f };
+    BoundaryBox boundary{ boundaryBoxSize };
 
     // Make picking texture so we can select vertices
     PickingTexture pickingTexture{ mode->width, mode->height };
@@ -90,7 +91,7 @@ int main(int argc, char* argv[])
     // Set uniform variables in shaders that won't change
     glUseProgram(mainShader);
     glUniformMatrix4fv(glGetUniformLocation(mainShader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-    glUniform3fv(glGetUniformLocation(mainShader, "diffuseMaterialColor"), 1, glm::value_ptr(glm::vec3{0.5f, 1.0f, 1.0f}));
+    glm::vec3 dragonColor{ 0.5f, 1.0f, 1.0f };
 
     glm::mat4 model{ 1.0f };
     glm::mat4 modelRotation{ 1.0f };
@@ -177,7 +178,7 @@ int main(int argc, char* argv[])
         if (selectedTriangle != 0xFFFFFFFFu)
         {
             // Angular acceleration
-            constexpr glm::vec3 forceWorldSpace{ 0.0f, 0.0f, -1.0f };
+            constexpr glm::vec3 forceWorldSpace{ 0.0f, 0.0f, -10.0f };
             const glm::vec3 forcePointWorldSpace{ rotationMat * triMesh.getFirstVertexFromTriangleID(selectedTriangle) };
             const glm::vec3 comWorldSpace{ rotationMat * triMesh.getCenterOfMass() };
 
@@ -210,6 +211,19 @@ int main(int argc, char* argv[])
         modelTranslation += linearVelocity * deltaTime;
 
         model = glm::translate(glm::mat4{ 1.0f }, modelTranslation) * modelRotation;
+
+        // Collision detection
+        for (size_t i{ 0 }; i < triMesh.getNumVertices(); ++i)
+        {
+            glm::vec3 vertexPosition{ model * glm::vec4{ triMesh.getVertexPosition(i), 1.0f} };
+            if (abs(vertexPosition.x) > boundaryBoxSize)
+                dragonColor = glm::vec3{ 1.0f, 1.0f, 1.0f };
+            if (abs(vertexPosition.y) > boundaryBoxSize)
+                dragonColor = glm::vec3{ 1.0f, 1.0f, 1.0f };
+            if (abs(vertexPosition.z) > boundaryBoxSize)
+                dragonColor = glm::vec3{ 1.0f, 1.0f, 1.0f };
+        }
+
         const glm::mat4 modelViewTransform { view * model };
 
         // Render selected triangle
@@ -232,6 +246,7 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(glGetUniformLocation(mainShader, "modelView"), 1, GL_FALSE, glm::value_ptr(modelViewTransform));
         glUniformMatrix4fv(glGetUniformLocation(mainShader, "normalModelView"), 1, GL_FALSE, glm::value_ptr(glm::transpose(glm::inverse(modelViewTransform))));
 		glUniform3fv(glGetUniformLocation(mainShader, "lightDir"), 1, glm::value_ptr(lightDirInViewSpace));
+        glUniform3fv(glGetUniformLocation(mainShader, "diffuseMaterialColor"), 1, glm::value_ptr(dragonColor));
         triMesh.draw();
 
         // Render boundary to screen

@@ -216,12 +216,18 @@ int main(int argc, char* argv[])
         for (size_t i{ 0 }; i < triMesh.getNumVertices(); ++i)
         {
             glm::vec3 vertexPosition{ model * glm::vec4{ triMesh.getVertexPosition(i), 1.0f} };
+            glm::vec3 collisionNormal;
+
             if (abs(vertexPosition.x) > boundaryBoxSize)
-                dragonColor = glm::vec3{ 1.0f, 1.0f, 1.0f };
-            if (abs(vertexPosition.y) > boundaryBoxSize)
-                dragonColor = glm::vec3{ 1.0f, 1.0f, 1.0f };
-            if (abs(vertexPosition.z) > boundaryBoxSize)
-                dragonColor = glm::vec3{ 1.0f, 1.0f, 1.0f };
+                collisionNormal = glm::vec3{ 1.0f, 0.0f, 0.0f };
+            else if (abs(vertexPosition.y) > boundaryBoxSize)
+                collisionNormal = glm::vec3{ 0.0f, 1.0f, 0.0f };
+            else if (abs(vertexPosition.z) > boundaryBoxSize)
+                collisionNormal = glm::vec3{ 0.0f, 0.0f, 1.0f };
+            else
+                continue;
+
+            linearVelocity = glm::reflect(linearVelocity, collisionNormal);
         }
 
         const glm::mat4 modelViewTransform { view * model };

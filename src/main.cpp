@@ -228,6 +228,7 @@ int main(int argc, char* argv[])
                 continue;
 
             linearVelocity = glm::reflect(linearVelocity, collisionNormal);
+            angularVelocity *= -1.0f;
         }
 
         const glm::mat4 modelViewTransform { view * model };

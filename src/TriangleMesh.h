@@ -55,6 +55,26 @@ class TriangleMesh
             m_numIndices = m_indices.size();
             m_centerOfMass /= static_cast<double>(m_vertexPositions.size());
 
+            // Calculate inertia tensor
+            for (glm::vec3 vertex : m_vertexPositions)
+            {
+                vertex -= m_centerOfMass;
+                float squaredDistanceFromOrigin{ glm::dot(vertex, vertex) };
+                glm::mat3 vertexInertia
+                {
+                    glm::mat3 
+                    {
+                        squaredDistanceFromOrigin, 0.0f, 0.0f,
+                        0.0f, squaredDistanceFromOrigin, 0.0f,
+                        0.0f, 0.0f, squaredDistanceFromOrigin
+                    } - glm::outerProduct(vertex, vertex)
+                };
+
+                m_objectSpaceInertiaTensor += vertexInertia;
+            }
+
+            m_objectSpaceInertiaTensor = (m_mass / m_vertexPositions.size()) * m_objectSpaceInertiaTensor;
+
             // Handle VAO
             GLuint VBO_positions, VBO_normals, EBO;
             glGenVertexArrays(1, &m_VAO);
@@ -94,26 +114,7 @@ class TriangleMesh
 
         glm::mat3 getInertiaTensor()
         {
-            glm::mat3 inertiaTensor{ 0.0f };
-
-            for (glm::vec3 vertex : m_vertexPositions)
-            {
-                vertex -= m_centerOfMass;
-                float squaredDistanceFromOrigin{ glm::dot(vertex, vertex) };
-                glm::mat3 vertexInertia
-                {
-                    glm::mat3 
-                    {
-                        squaredDistanceFromOrigin, 0.0f, 0.0f,
-                        0.0f, squaredDistanceFromOrigin, 0.0f,
-                        0.0f, 0.0f, squaredDistanceFromOrigin
-                    } - glm::outerProduct(vertex, vertex)
-                };
-
-                inertiaTensor += vertexInertia;
-            }
-
-            return (m_mass / m_vertexPositions.size()) * inertiaTensor;
+            return m_objectSpaceInertiaTensor;
         }
 
         glm::vec3 getFirstVertexFromTriangleID(GLuint triangleID)
@@ -140,5 +141,6 @@ class TriangleMesh
         GLuint m_VAO;
         unsigned int m_numIndices;
         glm::dvec3 m_centerOfMass;
+        glm::mat3 m_objectSpaceInertiaTensor{ 0.0f };
 
 };

@@ -95,6 +95,7 @@ int main(int argc, char* argv[])
     glm::mat4 modelRotation{ 1.0f };
     glm::vec3 angularVelocity{ 0.0f };
     GLfloat lastFrameTime{ static_cast<GLfloat>(glfwGetTime()) };
+    glm::mat4 model{ 1.0f };
     while (!glfwWindowShouldClose(window)) 
     {
         const GLfloat currentTime{ static_cast<GLfloat>(glfwGetTime()) };
@@ -140,10 +141,8 @@ int main(int argc, char* argv[])
         const glm::vec3 lightDir { glm::vec3{lightRotateMatrix * glm::vec4{1.0f, 0.0f, 0.0f, 0.0f}} };
         const glm::vec3 lightDirInViewSpace { -glm::normalize(view * glm::vec4(lightDir, 0.0f)) };
 
-
         // Get selected triangle with mouse input
         bool isTryingToPickTriangle{ processMouseInputIsTryingToPick(window, selectedTriangle) };
-        glm::mat4 model{ 1.0f };
         if (isTryingToPickTriangle)
         {
             pickingTexture.bind();
@@ -154,7 +153,7 @@ int main(int argc, char* argv[])
 
             // Render info about the object to a framebuffer so we can see which triangle we're clicking on
             glUseProgram(pickingShader);
-            glUniformMatrix4fv(glGetUniformLocation(pickingShader, "mvp"), 1, GL_FALSE, glm::value_ptr(projection * view * model * modelRotation));
+            glUniformMatrix4fv(glGetUniformLocation(pickingShader, "mvp"), 1, GL_FALSE, glm::value_ptr(projection * view * model));
             glUniform1ui(glGetUniformLocation(pickingShader, "objectIndex"), 1);
             triMesh.draw();
 
@@ -178,14 +177,14 @@ int main(int argc, char* argv[])
             glPolygonOffset(-1.0f, -1.0f);
             glUseProgram(highlightShader);
             glUniform1ui(glGetUniformLocation(highlightShader, "selectedTriangle"), selectedTriangle);
-            glUniformMatrix4fv(glGetUniformLocation(highlightShader, "mvp"), 1, GL_FALSE, glm::value_ptr(projection * view * model * modelRotation));
+            glUniformMatrix4fv(glGetUniformLocation(highlightShader, "mvp"), 1, GL_FALSE, glm::value_ptr(projection * view * model));
             triMesh.draw();
             glDisable(GL_POLYGON_OFFSET_FILL);
 
             // Get angular acceleration
             constexpr glm::vec3 forceWorldSpace{ 0.0f, 0.0f, 1.0f };
-            const glm::vec3 forcePointWorldSpace{ glm::mat3{ rotationMat } * triMesh.getFirstVertexFromTriangleID(selectedTriangle) };
-            const glm::vec3 comWorldSpace{ glm::mat3{ rotationMat } * triMesh.getCenterOfMass() };
+            const glm::vec3 forcePointWorldSpace{ model * glm::vec4{ triMesh.getFirstVertexFromTriangleID(selectedTriangle), 1.0f } };
+            const glm::vec3 comWorldSpace{ model * glm::vec4{ triMesh.getCenterOfMass(), 1.0f } };
 
             const glm::vec3 positionFromCOMWorldSpace{ forcePointWorldSpace - comWorldSpace };
             const glm::vec3 torque{ glm::cross(positionFromCOMWorldSpace, forceWorldSpace) };
@@ -206,7 +205,9 @@ int main(int argc, char* argv[])
         rotationMat = rotationUpdate * rotationMat;
         rotationMat = glm::orthonormalize(rotationMat);
         modelRotation = glm::mat4{ rotationMat };
-        model *= modelRotation;
+
+        constexpr glm::mat4 modelTranslation{ 1.0f };
+        model = modelTranslation * modelRotation;
         const glm::mat4 modelViewTransform { view * model };
 
         // Render object to screen

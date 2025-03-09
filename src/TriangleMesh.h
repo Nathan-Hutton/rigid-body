@@ -22,7 +22,6 @@ class TriangleMesh
             //std::vector<GLfloat> interleavedObjData;
             std::unordered_map<std::string, GLuint> uniqueVertexMap;
             std::vector<glm::vec3> vertexNormals;
-            std::vector<GLuint> indices;
 
             GLuint indexCounter;
             for (size_t i { 0 }; i < obj.NF(); ++i)
@@ -42,17 +41,17 @@ class TriangleMesh
                     if (uniqueVertexMap.find(vertexKey.str()) == uniqueVertexMap.end())
                     {
                         uniqueVertexMap[vertexKey.str()] = indexCounter;
-                        indices.push_back(indexCounter++);
+                        m_indices.push_back(indexCounter++);
 
                         m_vertexPositions.push_back(glm::vec3{vert.x, vert.y, vert.z});
                         vertexNormals.push_back(-glm::vec3{norm.x, norm.y, norm.z});
                         m_centerOfMass += glm::dvec3{ vert.x, vert.y, vert.z };
                     }
                     else
-                        indices.push_back(uniqueVertexMap[vertexKey.str()]);
+                        m_indices.push_back(uniqueVertexMap[vertexKey.str()]);
                 }
             }
-            m_numIndices = indices.size();
+            m_numIndices = m_indices.size();
             m_centerOfMass /= static_cast<double>(m_vertexPositions.size());
 
             // Handle VAO
@@ -78,7 +77,7 @@ class TriangleMesh
             glEnableVertexAttribArray(1);
 
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * indices.size(), indices.data(), GL_STATIC_DRAW);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * m_indices.size(), m_indices.data(), GL_STATIC_DRAW);
 
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             glBindVertexArray(0);
@@ -116,8 +115,14 @@ class TriangleMesh
             return (m_mass / m_vertexPositions.size()) * inertiaTensor;
         }
 
+        glm::vec3 getFirstVertexFromTriangleID(GLuint triangleID)
+        {
+            return m_vertexPositions[m_indices[triangleID * 3]];
+        }
+
     private:
         std::vector<glm::vec3> m_vertexPositions;
+        std::vector<GLuint> m_indices;
         float m_mass;
         GLuint m_VAO;
         unsigned int m_numIndices;

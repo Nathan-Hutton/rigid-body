@@ -184,7 +184,7 @@ int main(int argc, char* argv[])
 
             // Get angular acceleration
             constexpr glm::vec3 forceWorldSpace{ 0.0f, 0.0f, 1.0f };
-            const glm::vec3 forcePointWorldSpace{ glm::mat3{ rotationMat } * glm::vec3{ -0.672218f, 0.603643f, 0.124265f } };
+            const glm::vec3 forcePointWorldSpace{ glm::mat3{ rotationMat } * triMesh.getFirstVertexFromTriangleID(selectedTriangle) };
             const glm::vec3 comWorldSpace{ glm::mat3{ rotationMat } * triMesh.getCenterOfMass() };
 
             const glm::vec3 positionFromCOMWorldSpace{ forcePointWorldSpace - comWorldSpace };

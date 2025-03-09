@@ -19,6 +19,7 @@
 #include "TriangleMesh.h"
 #include "PickingTexture.h"
 #include "BoundaryBox.h"
+#include "Physics.h"
 
 int main(int argc, char* argv[])
 {
@@ -171,32 +172,24 @@ int main(int argc, char* argv[])
             selectedTriangle = pixel.primitiveID;
         }
 
-        // Render selected triangle to the screen
+        // Update angular and linear velocity based on 
         glm::mat3 rotationMat{ modelRotation };
         if (selectedTriangle != 0xFFFFFFFFu)
         {
-            // Render selected triangle a different color
-            glEnable(GL_POLYGON_OFFSET_FILL); // This basically pushes it ahead of the triangle that will be rendered in the normal render pass
-            glPolygonOffset(-1.0f, -1.0f);
-            glUseProgram(highlightShader);
-            glUniform1ui(glGetUniformLocation(highlightShader, "selectedTriangle"), selectedTriangle);
-            glUniformMatrix4fv(glGetUniformLocation(highlightShader, "mvp"), 1, GL_FALSE, glm::value_ptr(projection * view * model));
-            triMesh.draw();
-            glDisable(GL_POLYGON_OFFSET_FILL);
-
-            // Get angular acceleration
+            // Angular acceleration
             constexpr glm::vec3 forceWorldSpace{ 0.0f, 0.0f, -1.0f };
-            const glm::vec3 forcePointWorldSpace{ model * glm::vec4{ triMesh.getFirstVertexFromTriangleID(selectedTriangle), 1.0f } };
-            const glm::vec3 comWorldSpace{ model * glm::vec4{ triMesh.getCenterOfMass(), 1.0f } };
+            const glm::vec3 forcePointWorldSpace{ rotationMat * triMesh.getFirstVertexFromTriangleID(selectedTriangle) };
+            const glm::vec3 comWorldSpace{ rotationMat * triMesh.getCenterOfMass() };
 
             const glm::vec3 positionFromCOMWorldSpace{ forcePointWorldSpace - comWorldSpace };
             const glm::vec3 torque{ glm::cross(forceWorldSpace, positionFromCOMWorldSpace) };
 
-            const glm::mat3 inertiaTensorInverse { glm::inverse(glm::mat3{ rotationMat } * triMesh.getInertiaTensor() * glm::transpose(glm::mat3{ rotationMat })) };
-            const glm::vec3 angularAcceleration = inertiaTensorInverse * torque;
+            const glm::mat3 inertiaTensorInverse { glm::inverse(rotationMat * triMesh.getInertiaTensor() * glm::transpose(rotationMat)) };
+            const glm::vec3 angularAcceleration{ inertiaTensorInverse * torque };
             angularVelocity += angularAcceleration * deltaTime;
+            //angularVelocity += Physics::getAngularAccelerationForPoint(forceWorldSpace, forcePointWorldSpace, comWorldSpace, rotationMat, triMesh.getInertiaTensor()) * deltaTime;
 
-            // Get linear acceleration
+            // Linear acceleration
             const glm::vec3 linearAcceleration { forceWorldSpace / triMesh.getMass() };
             linearVelocity += linearAcceleration * deltaTime;
         }
@@ -218,6 +211,19 @@ int main(int argc, char* argv[])
 
         model = glm::translate(glm::mat4{ 1.0f }, modelTranslation) * modelRotation;
         const glm::mat4 modelViewTransform { view * model };
+
+        // Render selected triangle
+        if (selectedTriangle != 0xFFFFFFFFu)
+        {
+            // Render selected triangle a different color
+            glEnable(GL_POLYGON_OFFSET_FILL); // This basically pushes it ahead of the triangle that will be rendered in the normal render pass
+            glPolygonOffset(-1.0f, -1.0f);
+            glUseProgram(highlightShader);
+            glUniform1ui(glGetUniformLocation(highlightShader, "selectedTriangle"), selectedTriangle);
+            glUniformMatrix4fv(glGetUniformLocation(highlightShader, "mvp"), 1, GL_FALSE, glm::value_ptr(projection * view * model));
+            triMesh.draw();
+            glDisable(GL_POLYGON_OFFSET_FILL);
+        }
 
         // Render object to screen
         glUseProgram(mainShader);

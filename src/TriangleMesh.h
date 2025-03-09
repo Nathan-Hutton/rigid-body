@@ -11,7 +11,7 @@
 class TriangleMesh
 {
     public:
-        TriangleMesh(const std::string& objectFilePath, float mass)
+        TriangleMesh(const std::string& objectFilePath, float mass, float uniformScalingFactor)
         {
             m_mass = mass;
 
@@ -43,9 +43,9 @@ class TriangleMesh
                         uniqueVertexMap[vertexKey.str()] = indexCounter;
                         m_indices.push_back(indexCounter++);
 
-                        m_vertexPositions.push_back(glm::vec3{vert.x, vert.y, vert.z});
+                        m_vertexPositions.push_back(glm::vec3{vert.x, vert.y, vert.z} * uniformScalingFactor);
                         vertexNormals.push_back(-glm::vec3{norm.x, norm.y, norm.z});
-                        m_centerOfMass += glm::dvec3{ vert.x, vert.y, vert.z };
+                        m_centerOfMass += glm::dvec3{ vert.x, vert.y, vert.z } * static_cast<double>(uniformScalingFactor);
                     }
                     else
                         m_indices.push_back(uniqueVertexMap[vertexKey.str()]);

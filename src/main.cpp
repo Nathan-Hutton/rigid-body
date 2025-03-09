@@ -62,8 +62,7 @@ int main(int argc, char* argv[])
 	glDepthFunc(GL_LESS);
 
     // Handle objects
-    constexpr float dragonScalingFactor{ 5.0f };
-    TriangleMesh triMesh { TriangleMesh(argv[1], 10.0f) };
+    TriangleMesh triMesh { TriangleMesh(argv[1], 10.0f, 5.0f) };
     glm::vec3 com{ triMesh.getCenterOfMass() };
     BoundaryBox boundary{ 10.0f };
 
@@ -144,7 +143,7 @@ int main(int argc, char* argv[])
 
         // Get selected triangle with mouse input
         bool isTryingToPickTriangle{ processMouseInputIsTryingToPick(window, selectedTriangle) };
-        glm::mat4 model{ glm::scale(glm::mat4{1.0f}, glm::vec3{dragonScalingFactor}) };
+        glm::mat4 model{ 1.0f };
         if (isTryingToPickTriangle)
         {
             pickingTexture.bind();
@@ -174,6 +173,7 @@ int main(int argc, char* argv[])
         glm::mat3 rotationMat{ modelRotation };
         if (selectedTriangle != 0xFFFFFFFFu)
         {
+            // Render selected triangle a different color
             glEnable(GL_POLYGON_OFFSET_FILL); // This basically pushes it ahead of the triangle that will be rendered in the normal render pass
             glPolygonOffset(-1.0f, -1.0f);
             glUseProgram(highlightShader);

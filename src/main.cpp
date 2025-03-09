@@ -91,11 +91,13 @@ int main(int argc, char* argv[])
     glUniformMatrix4fv(glGetUniformLocation(mainShader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
     glUniform3fv(glGetUniformLocation(mainShader, "diffuseMaterialColor"), 1, glm::value_ptr(glm::vec3{0.5f, 1.0f, 1.0f}));
 
-    GLuint selectedTriangle{ 0xFFFFFFFFu };
-    glm::mat4 modelRotation{ 1.0f };
-    glm::vec3 angularVelocity{ 0.0f };
-    GLfloat lastFrameTime{ static_cast<GLfloat>(glfwGetTime()) };
     glm::mat4 model{ 1.0f };
+    glm::mat4 modelRotation{ 1.0f };
+    glm::vec3 modelTranslation{ 0.0f };
+    glm::vec3 angularVelocity{ 0.0f };
+
+    GLuint selectedTriangle{ 0xFFFFFFFFu };
+    GLfloat lastFrameTime{ static_cast<GLfloat>(glfwGetTime()) };
     while (!glfwWindowShouldClose(window)) 
     {
         const GLfloat currentTime{ static_cast<GLfloat>(glfwGetTime()) };
@@ -206,8 +208,7 @@ int main(int argc, char* argv[])
         rotationMat = glm::orthonormalize(rotationMat);
         modelRotation = glm::mat4{ rotationMat };
 
-        constexpr glm::mat4 modelTranslation{ 1.0f };
-        model = modelTranslation * modelRotation;
+        model = glm::translate(glm::mat4{ 1.0f }, modelTranslation) * modelRotation;
         const glm::mat4 modelViewTransform { view * model };
 
         // Render object to screen

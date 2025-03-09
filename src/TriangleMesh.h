@@ -121,6 +121,8 @@ class TriangleMesh
             return m_vertexPositions[m_indices[triangleID * 3]];
         }
 
+        float getMass() { return m_mass; }
+
     private:
         std::vector<glm::vec3> m_vertexPositions;
         std::vector<GLuint> m_indices;

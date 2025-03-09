@@ -94,6 +94,7 @@ int main(int argc, char* argv[])
     glm::mat4 model{ 1.0f };
     glm::mat4 modelRotation{ 1.0f };
     glm::vec3 modelTranslation{ 0.0f };
+    glm::vec3 linearVelocity{ 0.0f };
     glm::vec3 angularVelocity{ 0.0f };
 
     GLuint selectedTriangle{ 0xFFFFFFFFu };
@@ -184,16 +185,20 @@ int main(int argc, char* argv[])
             glDisable(GL_POLYGON_OFFSET_FILL);
 
             // Get angular acceleration
-            constexpr glm::vec3 forceWorldSpace{ 0.0f, 0.0f, 1.0f };
+            constexpr glm::vec3 forceWorldSpace{ 0.0f, 0.0f, -1.0f };
             const glm::vec3 forcePointWorldSpace{ model * glm::vec4{ triMesh.getFirstVertexFromTriangleID(selectedTriangle), 1.0f } };
             const glm::vec3 comWorldSpace{ model * glm::vec4{ triMesh.getCenterOfMass(), 1.0f } };
 
             const glm::vec3 positionFromCOMWorldSpace{ forcePointWorldSpace - comWorldSpace };
-            const glm::vec3 torque{ glm::cross(positionFromCOMWorldSpace, forceWorldSpace) };
+            const glm::vec3 torque{ glm::cross(forceWorldSpace, positionFromCOMWorldSpace) };
 
             const glm::mat3 inertiaTensorInverse { glm::inverse(glm::mat3{ rotationMat } * triMesh.getInertiaTensor() * glm::transpose(glm::mat3{ rotationMat })) };
             const glm::vec3 angularAcceleration = inertiaTensorInverse * torque;
             angularVelocity += angularAcceleration * deltaTime;
+
+            // Get linear acceleration
+            const glm::vec3 linearAcceleration { forceWorldSpace / triMesh.getMass() };
+            linearVelocity += linearAcceleration * deltaTime;
         }
 
         // Update rotation matrix based on angular velocity
@@ -207,6 +212,9 @@ int main(int argc, char* argv[])
         rotationMat = rotationUpdate * rotationMat;
         rotationMat = glm::orthonormalize(rotationMat);
         modelRotation = glm::mat4{ rotationMat };
+
+        // Update translation
+        modelTranslation += linearVelocity * deltaTime;
 
         model = glm::translate(glm::mat4{ 1.0f }, modelTranslation) * modelRotation;
         const glm::mat4 modelViewTransform { view * model };

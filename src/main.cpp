@@ -173,26 +173,67 @@ int main(int argc, char* argv[])
             selectedTriangle = pixel.primitiveID;
         }
 
-        // Update angular and linear velocity based on 
+        // *******
+        // Physics
+        // *******
+
+        // Update angular and linear velocity based on selected triangle
         glm::mat3 rotationMat{ modelRotation };
         if (selectedTriangle != 0xFFFFFFFFu)
         {
             // Angular acceleration
             constexpr glm::vec3 forceWorldSpace{ 0.0f, 0.0f, -10.0f };
+
             const glm::vec3 forcePointWorldSpace{ rotationMat * triMesh.getFirstVertexFromTriangleID(selectedTriangle) };
             const glm::vec3 comWorldSpace{ rotationMat * triMesh.getCenterOfMass() };
-
             const glm::vec3 positionFromCOMWorldSpace{ forcePointWorldSpace - comWorldSpace };
             const glm::vec3 torque{ glm::cross(forceWorldSpace, positionFromCOMWorldSpace) };
-
             const glm::mat3 inertiaTensorInverse { glm::inverse(rotationMat * triMesh.getInertiaTensor() * glm::transpose(rotationMat)) };
+
             const glm::vec3 angularAcceleration{ inertiaTensorInverse * torque };
             angularVelocity += angularAcceleration * deltaTime;
-            //angularVelocity += Physics::getAngularAccelerationForPoint(forceWorldSpace, forcePointWorldSpace, comWorldSpace, rotationMat, triMesh.getInertiaTensor()) * deltaTime;
 
             // Linear acceleration
-            const glm::vec3 linearAcceleration { forceWorldSpace / triMesh.getMass() };
+            const glm::vec3 linearAcceleration{ forceWorldSpace / triMesh.getMass() };
             linearVelocity += linearAcceleration * deltaTime;
+        }
+
+        // Collision detection
+        for (size_t i{ 0 }; i < triMesh.getNumVertices(); ++i)
+        {
+            glm::vec3 vertexPosition{ rotationMat * triMesh.getVertexPosition(i) + modelTranslation };
+
+            glm::vec3 collisionNormal{ 0.0f };
+            if (vertexPosition.x > boundaryBoxSize) collisionNormal += glm::vec3{ -1.0f, 0.0f, 0.0f };
+            else if (vertexPosition.x < -boundaryBoxSize) collisionNormal += glm::vec3{ 1.0f, 0.0f, 0.0f };
+            if (vertexPosition.y > boundaryBoxSize) collisionNormal += glm::vec3{ 0.0f, -1.0f, 0.0f };
+            else if (vertexPosition.y < -boundaryBoxSize) collisionNormal += glm::vec3{ 0.0f, 1.0f, 0.0f };
+            if (vertexPosition.z > boundaryBoxSize) collisionNormal += glm::vec3{ 0.0f, 0.0f, -1.0f };
+            else if (vertexPosition.z < -boundaryBoxSize) collisionNormal += glm::vec3{ 0.0f, 0.0f, 1.0f };
+            else continue;
+            collisionNormal = glm::normalize(collisionNormal);
+
+            const glm::vec3 comWorldSpace{ rotationMat * triMesh.getCenterOfMass() + modelTranslation };
+            const glm::vec3 positionFromCOMWorldSpace{ vertexPosition - comWorldSpace };
+
+            const glm::vec3 velocityAtContact{ linearVelocity + glm::cross(angularVelocity, positionFromCOMWorldSpace) };
+            const float velocityAlongNormal{ glm::dot(velocityAtContact, collisionNormal) };
+
+            if (velocityAlongNormal < 0.0f)
+            {
+                constexpr GLfloat bounciness{ 0.5f };
+                const GLfloat massInverse{ 1.0f / triMesh.getMass() };
+                const glm::mat3 inertiaTensorInverse { glm::inverse(rotationMat * triMesh.getInertiaTensor() * glm::transpose(rotationMat)) };
+                const GLfloat denominator{ massInverse + glm::dot(collisionNormal, glm::cross(inertiaTensorInverse * glm::cross(positionFromCOMWorldSpace, collisionNormal), positionFromCOMWorldSpace)) };
+
+                const GLfloat j{ -(1.0f + bounciness) * velocityAlongNormal / denominator };
+                const glm::vec3 impulse{ j * collisionNormal };
+                linearVelocity += impulse / triMesh.getMass();
+                angularVelocity += inertiaTensorInverse * glm::cross(positionFromCOMWorldSpace, impulse);
+            }
+
+            const GLfloat penetrationDepth = std::max(0.0f, glm::dot((boundaryBoxSize - glm::abs(vertexPosition)), collisionNormal));
+            modelTranslation += collisionNormal * penetrationDepth * 0.1f; // Small offset
         }
 
         // Update rotation matrix based on angular velocity
@@ -211,25 +252,6 @@ int main(int argc, char* argv[])
         modelTranslation += linearVelocity * deltaTime;
 
         model = glm::translate(glm::mat4{ 1.0f }, modelTranslation) * modelRotation;
-
-        // Collision detection
-        for (size_t i{ 0 }; i < triMesh.getNumVertices(); ++i)
-        {
-            glm::vec3 vertexPosition{ model * glm::vec4{ triMesh.getVertexPosition(i), 1.0f} };
-            glm::vec3 collisionNormal;
-
-            if (abs(vertexPosition.x) > boundaryBoxSize)
-                collisionNormal = glm::vec3{ 1.0f, 0.0f, 0.0f };
-            else if (abs(vertexPosition.y) > boundaryBoxSize)
-                collisionNormal = glm::vec3{ 0.0f, 1.0f, 0.0f };
-            else if (abs(vertexPosition.z) > boundaryBoxSize)
-                collisionNormal = glm::vec3{ 0.0f, 0.0f, 1.0f };
-            else
-                continue;
-
-            linearVelocity = glm::reflect(linearVelocity, collisionNormal);
-            angularVelocity *= -1.0f;
-        }
 
         const glm::mat4 modelViewTransform { view * model };
 

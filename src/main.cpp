@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
     glm::mat4 modelRotation{ 1.0f };
     glm::vec3 modelTranslation{ 0.0f };
     glm::vec3 linearVelocity{ 0.0f };
-    glm::vec3 angularVelocity{ 0.0f };
+    glm::vec3 angularVelocity{ 0.0f }; // Axis of rotation
 
     GLuint selectedTriangle{ 0xFFFFFFFFu };
     GLfloat lastFrameTime{ static_cast<GLfloat>(glfwGetTime()) };
@@ -203,23 +203,50 @@ int main(int argc, char* argv[])
         {
             glm::vec3 vertexPosition{ rotationMat * triMesh.getVertexPosition(i) + modelTranslation };
 
+            GLfloat penetrationDepth{ 0.0f };
             glm::vec3 collisionNormal{ 0.0f };
-            if (vertexPosition.x > boundaryBoxSize) collisionNormal += glm::vec3{ -1.0f, 0.0f, 0.0f };
-            else if (vertexPosition.x < -boundaryBoxSize) collisionNormal += glm::vec3{ 1.0f, 0.0f, 0.0f };
-            if (vertexPosition.y > boundaryBoxSize) collisionNormal += glm::vec3{ 0.0f, -1.0f, 0.0f };
-            else if (vertexPosition.y < -boundaryBoxSize) collisionNormal += glm::vec3{ 0.0f, 1.0f, 0.0f };
-            if (vertexPosition.z > boundaryBoxSize) collisionNormal += glm::vec3{ 0.0f, 0.0f, -1.0f };
-            else if (vertexPosition.z < -boundaryBoxSize) collisionNormal += glm::vec3{ 0.0f, 0.0f, 1.0f };
-            else continue;
+            if (vertexPosition.x > boundaryBoxSize) 
+            {
+                penetrationDepth = vertexPosition.x - boundaryBoxSize;
+                collisionNormal += glm::vec3{ -1.0f, 0.0f, 0.0f };
+            }
+            else if (vertexPosition.x < -boundaryBoxSize) 
+            {
+                penetrationDepth = glm::abs(vertexPosition.x + boundaryBoxSize);
+                collisionNormal += glm::vec3{ 1.0f, 0.0f, 0.0f };
+            }
+            if (vertexPosition.y > boundaryBoxSize) 
+            {
+                penetrationDepth = vertexPosition.y - boundaryBoxSize;
+                collisionNormal += glm::vec3{ 0.0f, -1.0f, 0.0f };
+            }
+            else if (vertexPosition.y < -boundaryBoxSize) 
+            {
+                penetrationDepth = glm::abs(vertexPosition.y + boundaryBoxSize);
+                collisionNormal += glm::vec3{ 0.0f, 1.0f, 0.0f };
+            }
+            if (vertexPosition.z > boundaryBoxSize) 
+            {
+                penetrationDepth = vertexPosition.z - boundaryBoxSize;
+                collisionNormal += glm::vec3{ 0.0f, 0.0f, -1.0f };
+            }
+            else if (vertexPosition.z < -boundaryBoxSize) 
+            {
+                penetrationDepth = glm::abs(vertexPosition.z + boundaryBoxSize);
+                collisionNormal += glm::vec3{ 0.0f, 0.0f, 1.0f };
+            }
+
+            if (glm::length(collisionNormal) < 0.1f) continue;
             collisionNormal = glm::normalize(collisionNormal);
 
             const glm::vec3 comWorldSpace{ rotationMat * triMesh.getCenterOfMass() + modelTranslation };
             const glm::vec3 positionFromCOMWorldSpace{ vertexPosition - comWorldSpace };
 
+            // Velocity at contact is the velocity of the actual point on the rigidbody
             const glm::vec3 velocityAtContact{ linearVelocity + glm::cross(angularVelocity, positionFromCOMWorldSpace) };
             const float velocityAlongNormal{ glm::dot(velocityAtContact, collisionNormal) };
 
-            if (velocityAlongNormal < 0.0f)
+            if (velocityAlongNormal < -0.001f)
             {
                 constexpr GLfloat bounciness{ 0.5f };
                 const GLfloat massInverse{ 1.0f / triMesh.getMass() };
@@ -232,8 +259,8 @@ int main(int argc, char* argv[])
                 angularVelocity += inertiaTensorInverse * glm::cross(positionFromCOMWorldSpace, impulse);
             }
 
-            const GLfloat penetrationDepth = std::max(0.0f, glm::dot((boundaryBoxSize - glm::abs(vertexPosition)), collisionNormal));
-            modelTranslation += collisionNormal * penetrationDepth * 0.1f; // Small offset
+            if (penetrationDepth > 0.0f)
+                modelTranslation += collisionNormal * penetrationDepth * 0.1f;
         }
 
         // Update rotation matrix based on angular velocity

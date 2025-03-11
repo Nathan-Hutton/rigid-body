@@ -55,12 +55,14 @@ class TriangleMesh
             m_numIndices = m_indices.size();
             m_centerOfMass /= static_cast<double>(m_vertexPositions.size());
 
-            // Calculate inertia tensor
+            // Calculate object space inertia tensor
+            // This is resistance to rotation
+            // The further away the points are from the center, the more resistant to rotation they'll be
             for (glm::vec3 vertex : m_vertexPositions)
             {
                 vertex -= m_centerOfMass;
-                float squaredDistanceFromOrigin{ glm::dot(vertex, vertex) };
-                glm::mat3 vertexInertia
+                const float squaredDistanceFromOrigin{ glm::dot(vertex, vertex) };
+                const glm::mat3 vertexInertia
                 {
                     glm::mat3 
                     {
@@ -112,7 +114,7 @@ class TriangleMesh
 
         glm::vec3 getCenterOfMass() { return m_centerOfMass; }
 
-        glm::mat3 getInertiaTensor()
+        glm::mat3 getInertiaTensor() // This is like resistance to rotation
         {
             return m_objectSpaceInertiaTensor;
         }

@@ -9,6 +9,27 @@ void processKeyboardInputExit(GLFWwindow* window)
         glfwSetWindowShouldClose(window, true);
 }
 
+glm::vec3 processKeyboardInputForceVec(GLFWwindow* window)
+{
+    glm::vec3 forceVec{ 0.0f };
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        forceVec += glm::vec3{ 0.0f, 0.0f, -1.0f };
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        forceVec += glm::vec3{ 0.0f, 0.0f, 1.0f };
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        forceVec += glm::vec3{ -1.0f, 0.0f, 0.0f };
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        forceVec += glm::vec3{ 1.0f, 0.0f, 0.0f };
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        forceVec += glm::vec3{ 0.0f, 1.0f, 0.0f };
+    if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
+        forceVec += glm::vec3{ 0.0f, -1.0f, 0.0f };
+
+    if (glm::length(forceVec) < 0.1f)
+        return glm::vec3{ 0.0f };
+    return glm::normalize(forceVec);
+}
+
 void processMouseInputObjectRotation(GLFWwindow* window, GLfloat& yRotateAmountChange, GLfloat& zRotateAmountChange)
 {
     static bool leftMouseButtonHeld { false }; // This is here so we don't get some huge jump right when you do a left click

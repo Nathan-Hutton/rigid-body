@@ -182,7 +182,8 @@ int main(int argc, char* argv[])
         if (selectedTriangle != 0xFFFFFFFFu)
         {
             // Angular acceleration
-            constexpr glm::vec3 forceWorldSpace{ 0.0f, 0.0f, -10.0f };
+            constexpr GLfloat forceMagnitude{ 10.0f };
+            const glm::vec3 forceWorldSpace{ processKeyboardInputForceVec(window) * forceMagnitude };
 
             const glm::vec3 forcePointWorldSpace{ rotationMat * triMesh.getFirstVertexFromTriangleID(selectedTriangle) };
             const glm::vec3 comWorldSpace{ rotationMat * triMesh.getCenterOfMass() };

@@ -64,7 +64,13 @@ int main(int argc, char* argv[])
     compileShaders();
 
     // Handle objects
-    TriangleMesh triMesh { TriangleMesh(argv[1], 10.0f, 5.0f) };
+    float scaleFactor{ 1.0f };
+    if (argv[1] == std::string{ "../assets/dragon_80k.obj" })
+        scaleFactor = 5.0f;
+    else if (argv[1] == std::string{ "../assets/armadillo_50k_tet.obj" })
+        scaleFactor = 0.05f;
+
+    TriangleMesh triMesh { TriangleMesh(argv[1], 10.0f, scaleFactor) };
     glm::vec3 com{ triMesh.getCenterOfMass() };
     constexpr GLfloat boundaryBoxSize{ 10.0f };
     BoundaryBox boundary{ boundaryBoxSize };

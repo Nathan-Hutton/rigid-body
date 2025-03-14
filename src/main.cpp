@@ -191,8 +191,14 @@ int main(int argc, char* argv[])
             const glm::vec3 torque{ glm::cross(forceWorldSpace, positionFromCOMWorldSpace) };
             const glm::mat3 inertiaTensorInverse { glm::inverse(rotationMat * triMesh.getInertiaTensor() * glm::transpose(rotationMat)) };
 
-            const glm::vec3 angularAcceleration{ inertiaTensorInverse * torque };
-            angularVelocity += angularAcceleration * deltaTime;
+            const glm::mat3 angularVelocitySkewSymmetricMatrix {
+                0.0f, -angularVelocity.z, angularVelocity.y,
+                angularVelocity.z, 0.0f, -angularVelocity.x,
+                -angularVelocity.y, angularVelocity.x,  0.0f
+            };
+
+            const glm::mat3 implicitHelper{ glm::mat3{ 1.0f } - deltaTime * angularVelocitySkewSymmetricMatrix };
+            angularVelocity = glm::inverse(implicitHelper) * (angularVelocity + deltaTime * inertiaTensorInverse * torque);
 
             // Linear acceleration
             const glm::vec3 linearAcceleration{ forceWorldSpace / triMesh.getMass() };
@@ -264,16 +270,20 @@ int main(int argc, char* argv[])
                 modelTranslation += collisionNormal * penetrationDepth * 0.1f;
         }
 
-        // Update rotation matrix based on angular velocity
-        const glm::mat3 angularVelocitySkewSymmetricMatrix {
-            0.0f, -angularVelocity.z, angularVelocity.y,
-            angularVelocity.z, 0.0f, -angularVelocity.x,
-            -angularVelocity.y, angularVelocity.x,  0.0f
-        };
+        if (glm::length(angularVelocity) > 0.0001f)
+        {
+            const glm::vec3 axis{ glm::normalize(angularVelocity) };
+            const float angle{ glm::length(angularVelocity) * deltaTime };
+            const glm::mat3 rotationUpdate{ glm::mat3{ 1.0f } + glm::sin(angle) * 
+                glm::mat3{
+                    0.0f, -axis.z, axis.y,
+                    axis.z, 0.0f, -axis.x,
+                    -axis.y, axis.x, 0.0f
+                } + (1.0f - glm::cos(angle)) * (glm::outerProduct(axis, axis) - glm::mat3{ 1.0f }) };
 
-        const glm::mat3 rotationUpdate{ glm::mat3{ 1.0f } + deltaTime * angularVelocitySkewSymmetricMatrix };
-        rotationMat = rotationUpdate * rotationMat;
-        rotationMat = glm::orthonormalize(rotationMat);
+            rotationMat = rotationUpdate * rotationMat;
+            rotationMat = glm::orthonormalize(rotationMat);
+        }
         modelRotation = glm::mat4{ rotationMat };
 
         // Update translation
